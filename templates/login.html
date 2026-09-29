@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0054a6">
+    <title>Đăng nhập - Quản lý Thi đua</title>
+    <!-- Nhúng Bootstrap 5 để làm đẹp nhanh -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #0054a6 0%, #00aaff 100%);
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .login-wrapper {
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .login-card {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px 30px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .login-icon-container {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #0054a6, #007bff);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+            box-shadow: 0 10px 20px rgba(0, 84, 166, 0.3);
+            color: white;
+            font-size: 36px;
+            transform: rotate(-5deg);
+        }
+
+        .login-title {
+            color: #003366;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .login-subtitle {
+            color: #6c757d;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* =========================================
+           NÂNG CẤP GIAO DIỆN Ô NHẬP LIỆU LOGIN
+           ========================================= */
+
+        /* 1. Khung bao bọc toàn bộ (Tạo nền và viền chung) */
+        .input-group {
+            background-color: #f1f5f9; 
+            border: 1.5px solid transparent; 
+            border-radius: 14px; 
+            transition: all 0.3s ease;
+            overflow: hidden; 
+        }
+
+        /* 2. Hiệu ứng bừng sáng khi người dùng click vào bất kỳ đâu trong ô */
+        .input-group:focus-within {
+            background-color: #ffffff; 
+            border-color: #0054a6; 
+            box-shadow: 0 0 0 4px rgba(0, 84, 166, 0.15); 
+        }
+
+        /* 3. Tinh chỉnh khối Icon bên trái */
+        .input-group-text {
+            background-color: transparent !important; 
+            border: none !important; 
+            color: #64748b; 
+            padding-left: 20px;
+            padding-right: 10px;
+            transition: color 0.3s ease;
+        }
+
+        /* 4. Đổi màu Icon sang Xanh khi ô bị Click */
+        .input-group:focus-within .input-group-text {
+            color: #0054a6;
+        }
+
+        /* 5. Tinh chỉnh khối Nhập chữ */
+        .form-control, .form-control.with-icon {
+            background-color: transparent !important; 
+            border: none !important; 
+            box-shadow: none !important; 
+            color: #0f172a;
+            font-weight: 600;
+            padding: 16px 20px 16px 5px;
+            height: auto;
+        }
+
+        /* 6. Xử lý triệt để nền vàng/xanh khi trình duyệt tự động điền (Autofill) mật khẩu */
+        .form-control:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px #f1f5f9 inset !important;
+            -webkit-text-fill-color: #0f172a !important;
+            border-radius: 0 14px 14px 0;
+        }
+        .input-group:focus-within .form-control:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #0054a6, #007bff);
+            color: white;
+            font-weight: 800;
+            font-size: 16px;
+            padding: 16px;
+            border-radius: 14px;
+            letter-spacing: 1px;
+            width: 100%;
+            border: none;
+            box-shadow: 0 8px 15px rgba(0, 84, 166, 0.25);
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-login:active {
+            transform: scale(0.96);
+            box-shadow: 0 4px 10px rgba(0, 84, 166, 0.2);
+        }
+
+        .form-check-input {
+            width: 1.2em;
+            height: 1.2em;
+            margin-top: 0.15em;
+            cursor: pointer;
+        }
+        .form-check-input:checked {
+            background-color: #0054a6;
+            border-color: #0054a6;
+        }
+
+        .footer-text {
+            color: #888888;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            margin-top: 30px;
+            line-height: 1.6;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 30px 20px;
+                border-radius: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="text-center">
+				<!-- LOGO HUY HIỆU ĐOÀN TỪ THƯ MỤC STATIC -->
+                <div class="text-center mb-4">
+                    <img src="{{ url_for('static', filename='logo_doan.png') }}" 
+                         alt="Huy hiệu Đoàn" 
+                         style="width: 95px; height: 95px; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0, 84, 166, 0.4)); transition: transform 0.3s ease;"
+                         onmouseover="this.style.transform='scale(1.08)'" 
+                         onmouseout="this.style.transform='scale(1)'">
+                </div>
+                <h1 class="login-title">QUẢN LÝ THI ĐUA</h1>
+                <p class="login-subtitle">Trường THPT Thanh Hòa</p>
+            </div>
+
+            <!-- ĐOẠN CODE HIỂN THỊ THÔNG BÁO LỖI TỪ PYTHON -->
+            {% with messages = get_flashed_messages(category_filter=["error"]) %}
+              {% if messages %}
+                <div class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger fw-bold rounded-4" role="alert" style="font-size: 13px; text-align: center; padding: 12px;">
+                  <i class="fa-solid fa-circle-exclamation me-1"></i> {{ messages[0] }}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="mb-3 input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                    <input type="text" class="form-control with-icon" name="username" placeholder="Tên đăng nhập" required autocomplete="off">
+                </div>
+                <div class="mb-3 input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" class="form-control with-icon" name="password" placeholder="Mật khẩu" required>
+                </div>
+                
+                <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
+                        <label class="form-check-label fw-bold text-secondary" for="rememberMe" style="font-size: 13px;">Ghi nhớ tôi</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-login"><i class="fa-solid fa-right-to-bracket me-2"></i>ĐĂNG NHẬP</button>
+            </form>
+
+            <div class="footer-text">
+                Hệ thống Quản lý Đoàn trường<br>
+                Design: Thầy ĐỨC ANH - Cô THÙY TIÊN <br>
+                Hotline: 0328.100.700 - 0987.727.700
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

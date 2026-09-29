@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sao Lưu Dữ Liệu - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; overflow: hidden; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; z-index: 1000; overflow-y: auto; }
+        .main-content { margin-left: 260px; padding: 20px 25px; height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        .header-bar { background-color: white; padding: 12px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; flex-shrink: 0; }
+        
+        .custom-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .table-container-scroll { flex: 1; overflow-y: auto; background: white; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+        
+        .table thead th { position: sticky; top: 0; background-color: #343a40 !important; color: white; font-size: 14px; vertical-align: middle; z-index: 10; border-bottom: none; }
+        .table td { vertical-align: middle; font-size: 14px; }
+    </style>
+</head>
+<body>
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <!-- Khối thông báo (Flash Messages) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                        <strong>{{ 'Thành công!' if category == 'success' else 'Lỗi!' }}</strong> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="header-bar d-flex justify-content-between align-items-center">
+            <h5 class="m-0 fw-bold text-secondary">
+                <i class="fa-solid fa-database text-warning me-2"></i> Trang chủ / Hệ thống / Sao lưu Dữ liệu
+            </h5>
+            <form action="/create_backup" method="POST" class="m-0" onsubmit="return confirm('Tiến trình sao lưu có thể mất vài giây. Bạn có chắc chắn muốn bắt đầu?');">
+                <button type="submit" class="btn btn-warning fw-bold text-dark shadow-sm">
+                    <i class="fa-solid fa-download me-2"></i> TẠO SAO LƯU MỚI NGAY
+                </button>
+            </form>
+        </div>
+
+        <div class="alert alert-info border-info" role="alert">
+            <i class="fa-solid fa-circle-info me-2"></i> <strong>Khuyến nghị an toàn:</strong> Đồng chí nên thực hiện <b>Tạo sao lưu mới</b> và <b>Tải về máy tính</b> ít nhất 1 lần/tuần để phòng ngừa rủi ro mất mát dữ liệu do sự cố phần cứng hoặc virus. File sao lưu chứa toàn bộ điểm thi đua, tài khoản người dùng và thiết lập sơ đồ trực.
+        </div>
+
+        <div class="card custom-card border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="m-0 fw-bold text-dark text-uppercase"><i class="fa-solid fa-server text-info me-1"></i> Quản lý các bản sao lưu (.ZIP)</h6>
+            </div>
+            
+            <div class="table-container-scroll">
+                <table class="table table-hover table-bordered m-0 text-center">
+                    <thead class="text-uppercase">
+                        <tr>
+                            <th style="width: 5%;">STT</th>
+                            <th style="width: 35%;">Tên File Backup</th>
+                            <th style="width: 20%;">Thời gian tạo</th>
+                            <th style="width: 15%;">Dung lượng</th>
+                            <th style="width: 25%;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in backups %}
+                        <tr>
+                            <td class="fw-bold">{{ loop.index }}</td>
+                            <td class="text-start fw-bold text-primary">
+                                <i class="fa-regular fa-file-zipper text-warning me-2"></i>{{ item.filename }}
+                            </td>
+                            <td class="fw-medium text-secondary">{{ item.time }}</td>
+                            <td class="fw-bold">{{ item.size }} MB</td>
+                            <td>
+                                <!-- Nút Phục hồi (1-Click Restore) MỚI ĐƯỢC BỔ SUNG -->
+                                <form action="/restore_backup/{{ item.filename }}" method="POST" class="d-inline" onsubmit="return confirm('🚨 CẢNH BÁO NGUY HIỂM: \nHành động này sẽ XÓA SẠCH toàn bộ dữ liệu (điểm số, tài khoản) hiện tại và khôi phục hệ thống lùi về đúng thời điểm của file backup này.\n\nBạn có chắc chắn muốn PHỤC HỒI hệ thống không?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-success fw-bold me-1" title="Khôi phục hệ thống từ file này">
+                                        <i class="fa-solid fa-clock-rotate-left"></i> Phục hồi
+                                    </button>
+                                </form>
+                                <!-- Nút Tải về -->
+                                <a href="/download_backup/{{ item.filename }}" class="btn btn-sm btn-outline-primary fw-bold me-1">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Tải về máy
+                                </a>
+                                <!-- Nút Xóa -->
+                                <form action="/delete_backup/{{ item.filename }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bản sao lưu này vĩnh viễn khỏi máy chủ không?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger fw-bold">
+                                        <i class="fa-solid fa-trash-can"></i> Xóa
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-muted fst-italic py-5">
+                                <i class="fa-solid fa-box-open fs-2 mb-2 d-block text-secondary"></i>
+                                Chưa có bản sao lưu nào được tạo. Hãy nhấn "TẠO SAO LƯU MỚI NGAY" để bảo vệ dữ liệu!
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

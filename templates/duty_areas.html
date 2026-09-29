@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khu vực trực - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; overflow: hidden; /* Khóa cuộn toàn trang */ }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; z-index: 1000; overflow-y: auto; }
+        .sidebar h4 { font-size: 18px; font-weight: bold; text-align: center; padding-bottom: 15px; border-bottom: 1px solid #0054a6; }
+        .sidebar .nav-link { color: #cce6ff; font-weight: 600; padding: 12px 20px; font-size: 14px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #002244; color: white; border-left: 4px solid #4da6ff; }
+        
+        /* Cố định vùng chứa chính, chiều cao vừa khít màn hình */
+        .main-content { margin-left: 260px; padding: 20px 25px; height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        
+        .header-bar { background-color: white; padding: 12px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .custom-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; }
+        
+        /* Thiết kế bảng cuộn độc lập bên trong */
+        .table-container-scroll {
+            flex: 1;
+            overflow-y: auto;
+            max-height: calc(100vh - 210px); /* Tự động co giãn vừa khít màn hình */
+            border: 1px solid #dee2e6;
+            background: white;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+        
+        .table { margin-bottom: 0; }
+        /* Cố định tiêu đề bảng dính ở trên khi cuộn */
+        .table thead th { 
+            position: sticky; 
+            top: 0; 
+            background-color: #f8f9fa !important; 
+            color: #004080; 
+            z-index: 10; 
+            border-bottom: 2px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    {% include 'sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- PHẦN CỐ ĐỊNH Ở TRÊN (TIÊU ĐỀ & THÔNG BÁO) -->
+        <div>
+            <div class="header-bar d-flex justify-content-between align-items-center mb-3">
+                <h5 class="m-0 fw-bold text-secondary">Trang chủ / Đội Sao đỏ / Khai báo Khu vực trực</h5>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show mb-3 py-2">
+                    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="row flex-grow-1 overflow-hidden">
+            <!-- FORM THÊM (CỐ ĐỊNH CHIỀU CAO VÀ CUỘN RIÊNG PHẦN CHỌN LỚP NẾU QUÁ DÀI) -->
+            <div class="col-md-4 h-100 d-flex flex-column">
+                <div class="card custom-card flex-grow-1 d-flex flex-column mb-0">
+                    <div class="card-header bg-white fw-bold text-primary py-3">
+                        <i class="fa-solid fa-location-dot"></i> Thêm Khu Vực / Cụm Trực
+                    </div>
+                    <div class="card-body overflow-y-auto">
+                        <form method="POST" action="/duty-areas">
+                            <div class="mb-3">
+                                <label class="fw-bold form-label text-secondary small">Tên khu vực / Cụm</label>
+                                <input type="text" class="form-control" name="name" placeholder="VD: Cụm 10_01 hoặc Cổng chính" required>
+                            </div>
+                            
+                            <!-- HỘP CHECKBOX CHỌN LỚP: Đã được nâng cấp tự động hiện lớp chưa có cụm -->
+                            <div class="mb-3">
+                                <label class="fw-bold form-label text-secondary small">Chọn lớp giám sát</label>
+                                
+                                <div class="border rounded p-2 shadow-sm bg-light mb-1" style="max-height: 180px; overflow-y: auto;">
+                                    <div class="row g-2">
+                                        <!-- Quét toàn bộ danh sách lớp trong hệ thống -->
+                                        {% for b in branches %}
+                                        <div class="col-6">
+                                            <div class="form-check">
+                                                {% if b.name in assigned_classes %}
+                                                    <!-- Lớp ĐÃ CÓ CỤM: Làm mờ, gạch ngang, khóa tick chọn -->
+                                                    <input class="form-check-input border-secondary" type="checkbox" disabled id="branch_{{ b.id }}">
+                                                    <label class="form-check-label small text-muted text-decoration-line-through" for="branch_{{ b.id }}" title="Lớp này đã nằm trong cụm khác">
+                                                        {{ b.name }} <i class="fa-solid fa-lock ms-1" style="font-size: 10px;"></i>
+                                                    </label>
+                                                {% else %}
+                                                    <!-- Lớp CHƯA CÓ CỤM: Sáng màu, cho phép tick chọn -->
+                                                    <input class="form-check-input border-primary shadow-sm" type="checkbox" name="branch_names" value="{{ b.name }}" id="branch_{{ b.id }}">
+                                                    <label class="form-check-label fw-bold text-dark small" for="branch_{{ b.id }}">
+                                                        {{ b.name }}
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                        
+                                        {% if branches|length == 0 %}
+                                            <div class="text-center text-muted small fst-italic w-100 py-2">
+                                                Chưa có dữ liệu lớp. Vui lòng thêm lớp ở Quản lý Chi đoàn.
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <small class="text-muted" style="font-size: 11.5px;"><i class="fa-solid fa-circle-info text-primary me-1"></i> Các lớp bị mờ (ổ khóa) là do đã được phân vào Cụm ở bảng bên phải. Bỏ trống nếu đây là khu vực tự do.</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="fw-bold form-label text-secondary small">Số lượng Sao đỏ yêu cầu</label>
+                                <input type="number" class="form-control" name="required_stars" value="2" min="1">
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 fw-bold">Thêm mới</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BẢNG DANH SÁCH (CÓ THANH CUỘN ĐỘC LẬP BÊN TRONG) -->
+            <div class="col-md-8 h-100 d-flex flex-column">
+                <div class="card custom-card flex-grow-1 d-flex flex-column mb-0">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                        <span class="fw-bold text-primary"><i class="fa-solid fa-list"></i> Danh sách Khu vực trực hiện tại</span>
+                        <div>
+                            <!-- NÚT XÓA NHIỀU: Mặc định ẩn, chỉ hiện khi có tick chọn -->
+                            <button type="button" class="btn btn-sm btn-danger fw-bold me-2 shadow-sm" id="btnBulkDelete" style="display: none;" onclick="submitBulkDelete()">
+                                <i class="fa-solid fa-trash-can me-1"></i> Xóa đã chọn (<span id="bulkDeleteCount">0</span>)
+                            </button>
+                            <button type="button" class="btn btn-sm btn-warning fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#importZoneModal">
+                                <i class="fa-solid fa-file-import"></i> Nạp Sơ đồ Cụm (Excel)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container-scroll flex-grow-1">
+                        <table class="table table-hover table-bordered m-0 text-center align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <!-- Ô CHECKBOX CHỌN TẤT CẢ -->
+                                    <th style="width: 4%;"><input type="checkbox" class="form-check-input border-secondary" id="selectAllAreas" onclick="toggleAllAreas(this)"></th>
+                                    <th style="width: 8%;">ID</th>
+                                    <th style="width: 25%;">Tên Khu Vực / Cụm</th>
+                                    <th style="width: 33%;">Các lớp giám sát</th>
+                                    <th style="width: 15%;">Yêu cầu (người)</th>
+                                    <th style="width: 15%;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for area in areas %}
+                                <tr>
+                                    <!-- Ô CHECKBOX CHO TỪNG DÒNG -->
+                                    <td><input type="checkbox" class="form-check-input border-secondary area-checkbox" value="{{ area.id }}" onclick="updateBulkDeleteBtn()"></td>
+                                    
+                                    <td class="text-muted">{{ area.id }}</td>
+                                    <td class="fw-bold text-start ps-3">{{ area.name }}</td>
+                                    <td class="text-start ps-2">
+                                        {% if area.name in zones_map %}
+                                            {% for c in zones_map[area.name] %}
+                                                <span class="badge bg-secondary mb-1">{{ c }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted small fst-italic">Khu vực tự do</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-info text-dark">{{ area.required_stars }}</span></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary py-0 px-2 me-1" title="Chỉnh sửa khu vực"
+                                                onclick="openEditAreaModal('{{ area.id }}', '{{ area.name }}', {{ area.required_stars }}, '{{ zones_map.get(area.name, []) | join(',') }}')">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+
+                                        <form action="/delete_duty_area/{{ area.id }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa khu vực này sẽ ảnh hưởng đến Lịch trực cũ. Bạn có chắc chắn?');">
+                                            <button type="submit" class="btn btn-sm btn-danger py-0 px-2" title="Xóa khu vực"><i class="fa-solid fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="6" class="text-center py-4 text-muted fst-italic">Chưa có dữ liệu Khu vực trực.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nhập Sơ Đồ Lớp / Khu Vực Trực Từ Excel -->
+    <div class="modal fade" id="importZoneModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-file-excel"></i> Nạp Sơ đồ Cụm lớp từ Excel</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form action="/import_class_zones" method="POST" enctype="multipart/form-data">
+              <div class="modal-body text-start">
+                  <div class="alert alert-info py-2" style="font-size: 13px;">
+                      Hệ thống sẽ dựa vào File Excel để thiết lập sự liên kết giữa các <strong>Cụm</strong> và <strong>Các Lớp bị giám sát</strong>.
+                      <br><br>
+                      File Excel (.xlsx) yêu cầu bắt buộc có cột tiêu đề: <strong>LỚP</strong> (và cột tùy chọn <strong>CỤM TRỰC</strong>). Nếu không có cột Cụm Trực, hệ thống sẽ tự động bắt cặp 2 lớp cạnh nhau thành 1 Cụm.
+                  </div>
+                  <input class="form-control" type="file" name="excel_file" accept=".xlsx, .xls" required>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-primary fw-bold">Tải lên & Khởi tạo Cụm</button>
+              </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL SỬA KHU VỰC TRỰC -->
+    <div class="modal fade" id="editAreaModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                <div class="modal-header border-0 pb-0" style="padding: 24px 24px 10px 24px;">
+                    <h5 class="modal-title fw-bold text-primary fs-5"><i class="fa-solid fa-pen-to-square me-2"></i>Chỉnh sửa Cụm trực</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editAreaForm" method="POST">
+                    <div class="modal-body px-4 pb-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-secondary small">Tên khu vực / Cụm trực <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fw-bold" id="editAreaName" name="edit_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-secondary small">Số lượng Sao đỏ yêu cầu <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="editRequiredStars" name="edit_required_stars" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-secondary small">Chọn các lớp thuộc cụm trực này:</label>
+                            <div class="border rounded-3 p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                                <div class="row g-2">
+                                    {% for b in branches %}
+                                    <div class="col-4 col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input border-secondary edit-branch-checkbox" type="checkbox" name="edit_branch_names" value="{{ b.name }}" id="edit_branch_{{ b.id }}">
+                                            <label class="form-check-label small fw-semibold" for="edit_branch_{{ b.id }}">{{ b.name }}</label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <small class="text-muted" style="font-size: 11px;">Bỏ tick tất cả nếu đây là khu vực tự do (Cổng, Hành lang...)</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                        <button type="button" class="btn btn-light fw-bold flex-grow-1" style="border-radius: 8px; padding: 10px;" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-primary fw-bold flex-grow-1" style="border-radius: 8px; padding: 10px;"><i class="fa-solid fa-save me-1"></i> Lưu thay đổi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM ẨN ĐỂ GỬI LỆNH XÓA NHIỀU -->
+    <form id="bulkDeleteForm" action="/delete_multiple_duty_areas" method="POST" style="display: none;"></form>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    // 1. KÍCH HOẠT MODAL SỬA
+    function openEditAreaModal(id, name, reqStars, selectedClassesStr) {
+        document.getElementById('editAreaForm').action = "/edit_duty_area/" + id;
+        document.getElementById('editAreaName').value = name;
+        document.getElementById('editRequiredStars').value = reqStars;
+        
+        document.querySelectorAll('.edit-branch-checkbox').forEach(cb => cb.checked = false);
+        
+        if(selectedClassesStr && selectedClassesStr.trim() !== "") {
+            let classes = selectedClassesStr.split(',');
+            document.querySelectorAll('.edit-branch-checkbox').forEach(cb => {
+                if (classes.includes(cb.value)) {
+                    cb.checked = true;
+                }
+            });
+        }
+        var myModal = new bootstrap.Modal(document.getElementById('editAreaModal'));
+        myModal.show();
+    }
+
+    // 2. CHỨC NĂNG XÓA HÀNG LOẠT
+    function toggleAllAreas(source) {
+        let checkboxes = document.querySelectorAll('.area-checkbox');
+        for(let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+        updateBulkDeleteBtn();
+    }
+
+    function updateBulkDeleteBtn() {
+        let checkedCount = document.querySelectorAll('.area-checkbox:checked').length;
+        let btn = document.getElementById('btnBulkDelete');
+        let countSpan = document.getElementById('bulkDeleteCount');
+        
+        if(checkedCount > 0) {
+            btn.style.display = 'inline-block';
+            countSpan.innerText = checkedCount;
+        } else {
+            btn.style.display = 'none';
+            document.getElementById('selectAllAreas').checked = false;
+        }
+    }
+
+    function submitBulkDelete() {
+        let checkedCheckboxes = document.querySelectorAll('.area-checkbox:checked');
+        if (checkedCheckboxes.length === 0) return;
+        
+        if(confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa ' + checkedCheckboxes.length + ' cụm trực này không? Mọi Lịch phân công trực liên quan cũng sẽ bị xóa!')) {
+            let form = document.getElementById('bulkDeleteForm');
+            form.innerHTML = ''; 
+            
+            checkedCheckboxes.forEach(cb => {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'area_ids';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            form.submit();
+        }
+    }
+    </script>
+</body>
+</html>

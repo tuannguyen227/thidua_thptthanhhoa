@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem Trước Hồ Sơ Chi Đoàn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .report-container { max-width: 1100px; margin: 30px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .section-title { font-size: 16px; font-weight: bold; color: #C00000; text-transform: uppercase; margin-top: 40px; margin-bottom: 15px; border-bottom: 2px solid #C00000; padding-bottom: 5px; }
+        .table th { background-color: #1F4E78 !important; color: white !important; font-size: 13px; text-align: center; vertical-align: middle; }
+        .table td { font-size: 14px; vertical-align: middle; text-align: center; }
+    </style>
+</head>
+<body>
+    <!-- THANH CÔNG CỤ CỐ ĐỊNH -->
+    <div class="bg-white border-bottom sticky-top py-3 shadow-sm px-4 d-flex justify-content-between align-items-center">
+        <h5 class="m-0 fw-bold text-dark"><i class="fa-solid fa-file-invoice text-primary me-2"></i> CHẾ ĐỘ XEM TRƯỚC HỒ SƠ CHI ĐOÀN</h5>
+        <div>
+            <a href="/class-dashboard?branch_id={{ branch.id }}" class="btn btn-outline-secondary fw-bold me-2"><i class="fa-solid fa-arrow-left me-1"></i> Trở lại Sổ điện tử</a>
+            <!-- NÚT XÁC NHẬN TẢI EXCEL -->
+            <a href="/export_class_dashboard/{{ branch.id }}" class="btn btn-success fw-bold"><i class="fa-solid fa-download me-1"></i> Xác nhận Xuất file Excel</a>
+        </div>
+    </div>
+
+    <!-- KHUNG TỜ GIẤY IN -->
+    <div class="report-container">
+        <h3 class="text-center fw-bold text-dark mb-2">HỒ SƠ TRA CỨU CHI ĐOÀN {{ branch.name.upper() }}</h3>
+        <p class="text-center fst-italic text-secondary mb-4 fs-5">
+            GVCN: <span class="fw-bold">{{ branch.gvcn or '....................' }}</span> | 
+            Sĩ số: <span class="fw-bold">{{ branch.si_so }}</span> | 
+            Nhóm: <span class="fw-bold">{{ branch.group or '1' }}</span>
+        </p>
+
+        <!-- PHẦN 1: ĐÃ XÓA ĐIỂM NỀN TRONG CODE -->
+        <div class="section-title">I. KẾT QUẢ THI ĐUA TỪNG TUẦN</div>
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Tuần</th>
+                    <th style="width: 12%;">Tổng điểm</th>
+                    <th style="width: 10%;">Hạng</th>
+                    <th style="width: 15%;">Xếp loại</th>
+                    <th style="width: 15%;">Điểm Tốt</th>
+                    <th>Ghi chú Vi phạm</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sc in weekly_scores %}
+                <tr>
+                    <td class="fw-bold text-primary">{{ sc.week }}</td>
+                    <td class="fw-bold text-danger">{{ sc.total_score }}</td>
+                    <td><span class="badge bg-warning text-dark px-2 py-1 fs-6">Hạng {{ sc.rank }}</span></td>
+                    <td class="fw-bold">{{ sc.rating }}</td>
+                    <!-- 100% Khớp cột Điểm Tốt -->
+                    <td class="fw-bold text-dark">{{ sc.diem_tot }}</td>
+                    <td class="text-start text-muted">{{ sc.note }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-3">Chưa có dữ liệu đánh giá thi đua.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- PHẦN 2 -->
+        <div class="section-title">II. DANH SÁCH SAO ĐỎ ĐÃ TRỰC CHẤM ĐIỂM LỚP NÀY</div>
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Tuần</th>
+                    <th style="width: 15%;">Ca trực</th>
+                    <th style="width: 25%;">Học sinh trực</th>
+                    <th style="width: 20%;">Thuộc Chi đoàn</th>
+                    <th style="width: 30%;">Khu vực được phân công</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assign in monitoring_assignments %}
+                <tr>
+                    <td class="fw-bold">Tuần {{ assign.week_number }}</td>
+                    <td>{{ assign.shift }}</td>
+                    <td class="text-danger fw-bold">{{ assign.red_star.full_name if assign.red_star else '-' }}</td>
+                    <td>{{ assign.red_star.branch.name if assign.red_star and assign.red_star.branch else '-' }}</td>
+                    <td class="text-primary">{{ assign.duty_area.name if assign.duty_area else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">Không có thông tin Sao đỏ trực chấm điểm.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- PHẦN 3 -->
+        <div class="section-title">III. LỊCH PHÂN CÔNG TRỰC CỦA HỌC SINH LỚP NÀY (ĐI TRỰC NƠI KHÁC)</div>
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Tuần</th>
+                    <th style="width: 15%;">Ca trực</th>
+                    <th style="width: 30%;">Học sinh thực hiện</th>
+                    <th style="width: 45%;">Khu vực được phân công trực</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assign in assignments %}
+                <tr>
+                    <td class="fw-bold">Tuần {{ assign.week_number }}</td>
+                    <td>{{ assign.shift }}</td>
+                    <td class="fw-bold text-dark">{{ assign.red_star.full_name if assign.red_star else '-' }}</td>
+                    <td class="text-primary">{{ assign.duty_area.name if assign.duty_area else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-3">Lớp này không có thành viên tham gia Đội Sao đỏ.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

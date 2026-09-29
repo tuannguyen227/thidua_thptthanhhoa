@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đội Sao đỏ - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; overflow: hidden; /* Khóa cuộn toàn trang */ }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; z-index: 1000; overflow-y: auto; }
+        .sidebar h4 { font-size: 18px; font-weight: bold; text-align: center; padding-bottom: 15px; border-bottom: 1px solid #0054a6; }
+        .sidebar .nav-link { color: #cce6ff; font-weight: 600; padding: 12px 20px; font-size: 14px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #002244; color: white; border-left: 4px solid #4da6ff; }
+        
+        /* Cố định vùng chứa chính, chiều cao vừa khít màn hình */
+        .main-content { margin-left: 260px; padding: 20px 25px; height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        
+        .header-bar { background-color: white; padding: 12px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .custom-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; }
+        
+        /* Thiết kế bảng cuộn độc lập bên trong */
+        .table-container-scroll {
+            flex: 1;
+            overflow-y: auto;
+            max-height: calc(100vh - 275px); /* Tự động co giãn vừa khít màn hình */
+            border: 1px solid #dee2e6;
+            background: white;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+        
+        .table { margin-bottom: 0; }
+        /* Cố định tiêu đề bảng dính ở trên khi cuộn */
+        .table thead th { 
+            position: sticky; 
+            top: 0; 
+            background-color: #f8f9fa !important; 
+            color: #004080; 
+            z-index: 10; 
+            border-bottom: 2px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+	{% include 'sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- PHẦN CỐ ĐỊNH Ở TRÊN (TIÊU ĐỀ, FORM THÊM, BỘ LỌC) -->
+        <div>
+            <div class="header-bar d-flex justify-content-between align-items-center">
+                <h5 class="m-0 fw-bold text-secondary">Trang chủ / Đội Sao đỏ / Danh sách</h5>
+                <div class="fw-bold text-success">
+                    {% if active_year %} Năm học: {{ active_year.name }} {% else %} Chưa có Năm học {% endif %}
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show mb-3 py-2">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <!-- FORM THÊM SAO ĐỎ MỚI -->
+            <div class="card custom-card mb-3">
+                <div class="card-body py-2">
+                    <form method="POST" action="/red-stars" class="row g-2 align-items-center">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control form-control-sm" name="full_name" placeholder="Họ và tên Sao đỏ" required>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" name="gender">
+                                <option value="Nam">Nam</option>
+                                <option value="Nữ">Nữ</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" name="branch_id" required>
+                                <option value="" disabled selected>-- Chọn Chi đoàn --</option>
+                                {% for b in branches %}
+                                    <option value="{{ b.id }}">{{ b.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" class="form-control form-control-sm" name="phone" placeholder="Số điện thoại">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" name="notes" placeholder="Ghi chú...">
+                                <button type="submit" class="btn btn-success fw-bold"><i class="fa-solid fa-plus"></i> Thêm</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- THANH TÌM KIẾM, LỌC VÀ NÚT NHẬP EXCEL -->
+            <div class="card custom-card mb-3 border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <form method="GET" action="/red-stars" class="row g-2 align-items-center">
+                        <div class="col-md-1 fw-bold text-secondary text-end" style="font-size: 13px;">Lọc theo:</div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control form-control-sm" name="search_name" value="{{ search_name }}" placeholder="🔍 Tìm tên Sao đỏ...">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm" name="filter_branch" onchange="this.form.submit()">
+                                <option value="">-- Tất cả Chi đoàn --</option>
+                                {% for b in branches %}
+                                    <option value="{{ b.id }}" {% if filter_branch == b.id|string %}selected{% endif %}>{{ b.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm fw-bold w-100">Tìm kiếm</button>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <a href="/red-stars" class="btn btn-secondary btn-sm me-1"><i class="fa-solid fa-rotate-right"></i> Làm mới</a>
+                            <button type="button" class="btn btn-warning btn-sm fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+                                <i class="fa-solid fa-file-import"></i> Nhập Excel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TIÊU ĐỀ BẢNG CỐ ĐỊNH -->
+            <div class="card custom-card rounded-bottom-0 border-bottom-0 mb-0 shadow-none border">
+                <div class="card-header bg-white fw-bold text-primary py-2">📋 DANH SÁCH ĐỘI SAO ĐỎ HIỆN TẠI</div>
+            </div>
+        </div>
+
+        <!-- PHẦN CHỈ CUỘN NỘI DUNG BÊN TRONG BẢNG -->
+        <div class="table-container-scroll">
+            <table class="table table-hover table-bordered m-0 text-center align-middle">
+                <thead>
+                    <tr class="table-light">
+                        <th style="width: 6%;">ID</th>
+                        <th>Họ và Tên</th>
+                        <th style="width: 10%;">Giới tính</th>
+                        <th style="width: 12%;">Chi đoàn</th>
+                        <th style="width: 12%;">Số điện thoại</th>
+                        <th style="width: 12%;">Trạng thái</th>
+                        <th style="width: 18%;">Ghi chú</th>
+                        <th style="width: 15%;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for star in stars %}
+                    <tr>
+                        <td class="text-muted">{{ star.id }}</td>
+                        <td class="fw-bold text-start ps-3">{{ star.full_name }}</td>
+                        <td>{{ star.gender }}</td>
+                        <td><span class="badge bg-info text-dark">{{ star.branch.name if star.branch else 'Trống' }}</span></td>
+                        <td>{{ star.phone }}</td>
+                        <td>
+                            {% if star.is_active %}
+                                <span class="badge bg-success">Đang hoạt động</span>
+                            {% else %}
+                                <span class="badge bg-danger">Tạm nghỉ</span>
+                            {% endif %}
+                        </td>
+                        <!-- [NÂNG CẤP]: HIỂN THỊ LỊCH TRỰC TUẦN HIỆN TẠI -->
+                        <td class="text-start">
+                            {% if star.notes %}
+                                <div class="mb-1 text-dark fw-medium" style="font-size: 13px;">{{ star.notes }}</div>
+                            {% endif %}
+                            
+                            {% if current_assignments_map and star.id in current_assignments_map %}
+                                {{ current_assignments_map[star.id] | safe }}
+                            {% else %}
+                                <div class="mt-1 p-1 rounded text-muted fst-italic" style="background-color: #f1f5f9; font-size: 12px; border: 1px dashed #cbd5e1;">
+                                    <i class="fa-solid fa-bed me-1 text-secondary"></i> Trống ca tuần này
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <!-- [NÂNG CẤP] Nút Xem Lịch sử trực -->
+                            <button class="btn btn-sm btn-info text-white py-0 px-2" onclick="viewHistory({{ star.id }}, '{{ star.full_name }}')" title="Xem lịch sử phân công trực"><i class="fa-solid fa-clock-rotate-left"></i></button>
+
+                            <!-- Nút Sửa gọi Modal -->
+                            <button class="btn btn-sm btn-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editModal{{ star.id }}" title="Sửa thông tin"><i class="fa-solid fa-pen"></i></button>
+                            
+                            <!-- Nút Đổi nhanh trạng thái -->
+                            <form action="/toggle_star_status/{{ star.id }}" method="POST" class="d-inline">
+                                {% if star.is_active %}
+                                    <button type="submit" class="btn btn-sm btn-secondary py-0 px-2" title="Cho tạm nghỉ"><i class="fa-solid fa-ban"></i></button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-sm btn-success py-0 px-2" title="Kích hoạt lại"><i class="fa-solid fa-check"></i></button>
+                                {% endif %}
+                            </form>
+
+                            <!-- Nút Xóa vĩnh viễn -->
+                            <form action="/delete_red_star/{{ star.id }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa Sao đỏ {{ star.full_name }}?');">
+                                <button type="submit" class="btn btn-sm btn-danger py-0 px-2" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <!-- Modal Sửa Thông Tin Sao Đỏ -->
+                    <div class="modal fade" id="editModal{{ star.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">Sửa thông tin: {{ star.full_name }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                          </div>
+                          <form action="/edit_red_star/{{ star.id }}" method="POST">
+                              <div class="modal-body text-start">
+                                  <div class="mb-3">
+                                      <label class="form-label fw-bold">Họ và Tên</label>
+                                      <input type="text" class="form-control" name="edit_full_name" value="{{ star.full_name }}" required>
+                                  </div>
+                                  <div class="row mb-3">
+                                      <div class="col-md-6">
+                                          <label class="form-label fw-bold">Giới tính</label>
+                                          <select class="form-select" name="edit_gender">
+                                              <option value="Nam" {% if star.gender == 'Nam' %}selected{% endif %}>Nam</option>
+                                              <option value="Nữ" {% if star.gender == 'Nữ' %}selected{% endif %}>Nữ</option>
+                                          </select>
+                                      </div>
+                                      <div class="col-md-6">
+                                          <label class="form-label fw-bold">Chi đoàn</label>
+                                          <select class="form-select" name="edit_branch_id" required>
+                                              {% for b in branches %}
+                                                  <option value="{{ b.id }}" {% if star.branch_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+                                              {% endfor %}
+                                          </select>
+                                      </div>
+                                  </div>
+                                  <div class="mb-3">
+                                      <label class="form-label fw-bold">Số điện thoại</label>
+                                      <input type="text" class="form-control" name="edit_phone" value="{{ star.phone }}">
+                                  </div>
+                                  <div class="mb-3">
+                                      <label class="form-label fw-bold">Ghi chú</label>
+                                      <input type="text" class="form-control" name="edit_notes" value="{{ star.notes }}">
+                                  </div>
+                                  <div class="form-check form-switch mt-2">
+                                      <input class="form-check-input" type="checkbox" name="edit_is_active" id="active{{ star.id }}" {% if star.is_active %}checked{% endif %}>
+                                      <label class="form-check-label fw-bold text-success" for="active{{ star.id }}">Trạng thái Đang hoạt động</label>
+                                  </div>
+                              </div>
+                              <div class="modal-footer"><button type="submit" class="btn btn-primary w-100">Lưu thay đổi</button></div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Kết thúc Modal Sửa -->
+
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted fst-italic">Chưa có dữ liệu Sao đỏ trong năm học này.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Modal Nhập Excel Danh Sách Sao Đỏ -->
+    <div class="modal fade" id="importExcelModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-file-excel"></i> Nhập danh sách Sao đỏ từ Excel</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form action="/import_red_stars" method="POST" enctype="multipart/form-data">
+              <div class="modal-body text-start">
+                  <div class="alert alert-info py-2" style="font-size: 13px;">
+                      File Excel (.xlsx) yêu cầu tối thiểu các cột tiêu đề: <br>
+                      <strong>HỌ VÀ TÊN | CHI ĐOÀN (hoặc LỚP)</strong><br>
+                      <i>(Có thể bổ sung thêm: Giới tính, Số điện thoại, Ghi chú)</i>
+                  </div>
+                  <input class="form-control" type="file" name="excel_file" accept=".xlsx, .xls" required>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-primary">Tải lên & Xử lý</button>
+              </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- [NÂNG CẤP] MODAL: XEM LỊCH SỬ TRỰC SAO ĐỎ   -->
+    <!-- ========================================== -->
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch sử phân công: <span id="historyStarName" class="text-dark bg-white px-2 py-1 rounded ms-1"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover table-striped m-0 text-center">
+                            <thead class="table-dark text-white" style="position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th style="width: 15%;">Tuần</th>
+                                    <th style="width: 20%;">Ca trực</th>
+                                    <th style="width: 25%;">Khu vực / Cụm</th>
+                                    <th style="width: 40%;">Lớp phụ trách giám sát</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- Dữ liệu sẽ được load tự động qua Javascript vào đây -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- [NÂNG CẤP] SCRIPT GỌI API LỊCH SỬ TRỰC -->
+    <script>
+        function viewHistory(starId, starName) {
+            document.getElementById('historyStarName').innerText = starName;
+            document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-info spinner-border-sm me-2"></div> Đang quét hồ sơ...</td></tr>';
+            
+            var historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+            historyModal.show();
+            
+            fetch('/api/red_star_history/' + starId)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.error) {
+                        document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="4" class="text-danger fw-bold py-4">' + res.error + '</td></tr>';
+                        return;
+                    }
+                    
+                    let tbody = '';
+                    if (res.data.length === 0) {
+                        tbody = '<tr><td colspan="4" class="text-muted fst-italic py-4">Chưa có dữ liệu phân công trực nào cho em học sinh này.</td></tr>';
+                    } else {
+                        res.data.forEach((item) => {
+                            tbody += `
+                                <tr>
+                                    <td class="fw-bold align-middle">${item.week}</td>
+                                    <td class="text-primary fw-bold align-middle">${item.shift}</td>
+                                    <td class="fw-medium text-dark align-middle">${item.area}</td>
+                                    <td class="text-secondary align-middle text-start" style="font-size: 0.95em;">
+                                        <i class="fa-solid fa-layer-group me-1 text-warning"></i>${item.classes}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    document.getElementById('historyTableBody').innerHTML = tbody;
+                })
+                .catch(err => {
+                    document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="4" class="text-danger fw-bold py-4">Lỗi kết nối đến máy chủ!</td></tr>';
+                });
+        }
+    </script>
+</body>
+</html>

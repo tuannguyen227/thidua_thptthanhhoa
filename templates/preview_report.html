@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem trước Báo cáo - {{ week_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Times New Roman', serif; background-color: #f4f6f9; }
+        
+        /* Giao diện mô phỏng tờ giấy A4 */
+        .a4-container {
+            background-color: white;
+            width: 100%;
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        
+        .header-title { font-size: 16px; font-weight: bold; text-align: center; }
+        .main-title { font-size: 22px; font-weight: bold; text-align: center; margin-top: 20px; }
+        .sub-title { font-size: 16px; font-style: italic; text-align: center; margin-bottom: 25px; }
+        
+        /* Căn chỉnh bảng chuẩn in ấn */
+        .table th { background-color: #1F4E78 !important; color: white !important; text-align: center; vertical-align: middle; border: 1px solid #000; }
+        .table td { border: 1px solid #000; vertical-align: middle; }
+        .table-group { background-color: #e9ecef; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- THANH CÔNG CỤ CỐ ĐỊNH TRÊN CÙNG -->
+    <div class="container-fluid py-3 bg-white shadow-sm sticky-top d-flex justify-content-between align-items-center">
+        <a href="/weekly?week={{ week_name }}" class="btn btn-secondary fw-bold">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại Bảng điểm
+        </a>
+        <h4 class="m-0 fw-bold text-primary">Chế độ Xem Trước (Preview)</h4>
+        <a href="/export_weekly_excel?week={{ week_name }}" class="btn btn-success fw-bold px-4">
+            <i class="fa-solid fa-file-excel"></i> Xác nhận Xuất File Excel
+        </a>
+    </div>
+
+    <!-- KHUNG GIẤY A4 -->
+    <div class="a4-container">
+        <!-- Tiêu đề Đoàn trường -->
+        <div class="row mb-4">
+            <div class="col-6 header-title">ĐOÀN TRƯỜNG THPT THANH HÒA</div>
+            <div class="col-6 header-title">ĐOÀN TNCS HỒ CHÍ MINH</div>
+        </div>
+
+        <div class="main-title">BẢNG TỔNG HỢP KẾT QUẢ THI ĐUA - {{ week_name | upper }}</div>
+        
+        {% if start_date and end_date %}
+            <div class="sub-title">(Từ ngày {{ start_date }} đến ngày {{ end_date }})</div>
+        {% endif %}
+
+        <!-- Bảng điểm chi tiết -->
+        <table class="table table-bordered table-sm mt-3">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">STT</th>
+                    <th style="width: 10%;">Lớp</th>
+                    <th style="width: 12%;">X.H Tuần Trước</th>
+                    <th style="width: 12%;">Hạng Hiện Tại</th>
+                    <th style="width: 10%;">Tổng điểm</th>
+                    <!-- ĐÃ ĐỔI TÊN CỘT THÀNH SL ĐIỂM TỐT ĐỂ ĐỒNG BỘ -->
+                    <th style="width: 12%;">SL Điểm Tốt</th>
+                    <th style="width: 39%;">Ghi chú</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group, items in report_data.items()|sort %}
+                <!-- Dòng phân loại Nhóm/Khối -->
+                <tr class="table-group">
+                    <td colspan="7" class="ps-3">{{ group }}</td>
+                </tr>
+                <!-- Dữ liệu từng lớp trong Nhóm -->
+                {% for row in items %}
+                <tr>
+                    <td class="text-center">{{ loop.index }}</td>
+                    <td class="text-center fw-bold">{{ row.branch_name }}</td>
+                    <td class="text-center">{{ row.prev_rank }}</td>
+                    <td class="text-center fw-bold text-danger">{{ row.current_rank }}</td>
+                    <!-- Xử lý hiển thị số nguyên nếu điểm chẵn (ví dụ 100.0 -> 100) -->
+                    <td class="text-center fw-bold">
+                        {% if row.total_score % 1 == 0 %}
+                            {{ row.total_score | int }}
+                        {% else %}
+                            {{ row.total_score }}
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ row.diem_tot }}</td>
+                    <td>{{ row.note }}</td>
+                </tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Chữ ký footer -->
+        <div class="row mt-5">
+            <div class="col-8"></div>
+            <div class="col-4 text-center fw-bold" style="font-size: 16px;">
+                TM/BCH ĐOÀN TRƯỜNG
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang chủ - Quản lý Thi đua</title>
+    <!-- Nhúng Bootstrap 5 và FontAwesome Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Nhúng thư viện vẽ biểu đồ Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; }
+        
+        /* Thanh điều hướng bên trái (Sidebar) */
+        .sidebar {
+            width: 260px;
+            /* height: 100vh; */
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #004080;
+            color: white;
+            padding-top: 20px;
+        }
+        .sidebar h4 { font-size: 18px; font-weight: bold; text-align: center; padding-bottom: 15px; border-bottom: 1px solid #0054a6; }
+        .sidebar .nav-link {
+            color: #cce6ff;
+            font-weight: 600;
+            padding: 12px 20px;
+            font-size: 14px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #002244;
+            color: white;
+            border-left: 4px solid #4da6ff;
+        }
+        
+        /* Nội dung chính bên phải */
+        .main-content { margin-left: 260px; padding: 25px; }
+        .header-bar {
+            background-color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid #0054a6;
+        }
+        .stat-card.green { border-left-color: #1cc88a; }
+        .stat-card.yellow { border-left-color: #f6c23e; }
+        .stat-title { font-size: 13px; font-weight: bold; color: #888; text-transform: uppercase; }
+        .stat-value { font-size: 28px; font-weight: bold; color: #333; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    {% include 'sidebar.html' %}
+    
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- HEADER BAR -->
+        <div class="header-bar">
+            <h5 class="m-0 fw-bold text-secondary">Trang chủ / Tổng quan</h5>
+            <div class="user-info fw-bold text-primary">
+                👤 Xin chào, {{ user_fullname }} ({{ user_role }})
+            </div>
+        </div>
+
+        <!-- HỆ THỐNG THÔNG BÁO FLASH MESSAGES -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show shadow-sm mb-4">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- CẢNH BÁO PHÚC KHẢO DÀNH CHO BCH -->
+        {% if pending_appeals and pending_appeals|length > 0 %}
+        <div class="alert alert-danger shadow-sm border-danger mb-4" style="border-left: 5px solid #dc3545;">
+            <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-bell fa-shake"></i> THÔNG BÁO: CÓ ĐƠN PHÚC KHẢO ĐANG CHỜ XỬ LÝ</h5>
+            <div class="table-responsive bg-white rounded">
+                <table class="table table-sm table-bordered m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%; text-align: center;">Chi đoàn</th>
+                            <th style="width: 15%; text-align: center;">Tuần</th>
+                            <th style="width: 50%;">Nội dung GVCN Phúc khảo</th>
+                            <th style="width: 20%; text-align: center;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+						{% for p in pending_appeals %}
+                        <tr>
+                            <td class="text-center fw-bold text-primary">{{ p.branch_name }}</td>
+                            <td class="text-center fw-bold text-dark">{{ p.week }}</td>
+                            <td class="fst-italic text-secondary px-3">"{{ p.reason }}"</td>
+                            <td class="text-center">
+                                <!-- Nút trả lời sử dụng Data Attributes (An toàn tuyệt đối với mọi ký tự) -->
+									<button class="btn btn-sm btn-danger fw-bold shadow-sm" 
+                                        onclick="openResolveModal(this)"
+                                        data-score-id="{{ p.score_id }}"
+                                        data-branch-name="{{ p.branch_name }}"
+                                        data-week="{{ p.week }}"
+                                        data-reason="{{ p.reason }}"
+                                        data-note="{{ p.note }}">
+                                    <i class="fa-solid fa-reply"></i> Trả lời
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- KPI CARDS -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-title">🏢 TỔNG SỐ CHI ĐOÀN</div>
+                    <div class="stat-value">{{ total_branches }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card green">
+                    <div class="stat-title">📅 TUẦN THI ĐUA HIỆN TẠI</div>
+                    <div class="stat-value">{{ current_week }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card yellow">
+                    <div class="stat-title">⭐ ĐTB THI ĐUA TOÀN TRƯỜNG</div>
+                    <div class="stat-value">{{ avg_score }} đ</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHART AREA -->
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white fw-bold text-primary py-3">
+                📈 TOP 10 CHI ĐOÀN DẪN ĐẦU - {{ current_week.upper() }}
+            </div>
+            <div class="card-body">
+                <canvas id="top10Chart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+	<!-- MODAL BCH TRẢ LỜI PHÚC KHẢO (ĐÃ NÂNG CẤP LUỒNG TICKETING BẢO TOÀN DỮ LIỆU) -->
+    {% if pending_appeals and pending_appeals|length > 0 %}
+    <div class="modal fade" id="resolveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-scale-balanced me-2"></i> Xử lý Phán quyết Phúc khảo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/resolve_appeal" method="POST">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="score_id" id="resolveScoreId">
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark">Chi đoàn đang khiếu nại:</label>
+                            <input type="text" class="form-control fw-bold bg-light text-primary border-0" id="resolveBranch" readonly>
+                        </div>
+
+                        <!-- LÝ DO GVCN -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark">Nội dung khiếu nại của GVCN:</label>
+                            <div class="p-3 bg-light border border-secondary border-opacity-25 rounded-3 text-danger fst-italic shadow-sm" id="resolveReason">
+                                <!-- JS sẽ đẩy nội dung vào đây -->
+                            </div>
+                        </div>
+
+                        <!-- [TÍNH NĂNG MỚI]: BẢNG CHỌN CHECKBOX THÔNG MINH BẢO TOÀN DỮ LIỆU -->
+                        <div class="mb-4">
+                            <label class="fw-bold text-primary mb-2"><i class="fa-solid fa-list-check me-1"></i> Chọn các lỗi để Gỡ & Hoàn điểm tự động:</label>
+                            <div class="border p-3 rounded bg-white shadow-sm" id="resolveNoteContainer" style="max-height: 220px; overflow-y: auto;">
+                                <!-- Checkbox sẽ được JS chẻ nhỏ và nạp tự động vào đây -->
+                            </div>
+                            <small class="text-muted mt-2 d-block"><i class="fa-solid fa-circle-info me-1"></i> Các lỗi được chọn sẽ tự động hoàn điểm và bị đẩy ra khỏi Sổ Đen, đồng thời được đóng mộc <b>(ĐÃ GỠ)</b> để lưu trữ lịch sử, không bị mất dữ liệu Sổ Đầu Bài.</small>
+                        </div>
+                        
+                        <!-- Ô NHẬP ĐIỂM DỰ PHÒNG -->
+                        <div class="mb-4 p-3 bg-warning bg-opacity-10 border border-warning border-opacity-50 rounded-3">
+                            <label class="form-label fw-bold text-warning-emphasis"><i class="fa-solid fa-calculator me-1"></i> Số điểm hoàn thủ công (Nếu cần):</label>
+                            <input type="number" step="0.5" min="0" class="form-control border-warning fw-bold fs-5 text-dark" name="refund_points" value="0" placeholder="VD: 2.0">
+                            <small class="text-muted mt-2 d-block fst-italic">Chỉ dùng ô này nếu thầy/cô muốn cộng thêm một số điểm đền bù nằm ngoài các lỗi vi phạm, hoặc khi phần Checkbox không nhận diện được lỗi.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label fw-bold text-dark">Phán quyết & Phản hồi từ Đoàn trường:</label>
+                            <textarea class="form-control border-secondary" name="response_text" rows="3" placeholder="Ghi rõ lý do tại sao duyệt hoặc từ chối để GVCN nắm rõ..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0 p-3 d-flex gap-2">
+                        <!-- NÚT TỪ CHỐI -->
+                        <button type="submit" name="action" value="reject" class="btn btn-danger fw-bold px-4 shadow-sm flex-grow-1 py-2">
+                            <i class="fa-solid fa-ban me-1"></i> Từ chối Phúc khảo
+                        </button>
+                        <!-- NÚT ĐỒNG Ý -->
+                        <button type="submit" name="action" value="approve" class="btn btn-success fw-bold px-4 shadow-sm flex-grow-1 py-2">
+                            <i class="fa-solid fa-check-double me-1"></i> Duyệt Gỡ Lỗi & Hoàn Điểm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // JS MỚI: Tự động chẻ nhỏ chuỗi `note` từ Sổ Đầu Bài thành các Checkbox
+        function openResolveModal(btn) {
+            document.getElementById('resolveScoreId').value = btn.getAttribute('data-score-id');
+            document.getElementById('resolveBranch').value = "Lớp " + btn.getAttribute('data-branch-name') + " (" + btn.getAttribute('data-week') + ")";
+            
+            // Xử lý làm đẹp hiển thị lý do
+            let rawReason = btn.getAttribute('data-reason');
+            let formattedReason = rawReason.replace(/\] & \[/g, '<br>• ').replace(/\[/g, '').replace(/\]/g, '');
+            document.getElementById('resolveReason').innerHTML = '<b>' + formattedReason + '</b>';
+            
+            // Thuật toán bóc tách dữ liệu Sổ Đầu Bài và dựng Checkbox bảo toàn mộc (ĐÃ GỠ)
+            let rawNote = btn.getAttribute('data-note') || "";
+            let container = document.getElementById('resolveNoteContainer');
+            container.innerHTML = ""; // Xóa dữ liệu cũ
+            
+            if (!rawNote.trim()) {
+                container.innerHTML = '<div class="text-center text-muted fst-italic py-3">Không có lỗi vi phạm cụ thể nào được ghi nhận trong Sổ Đầu Bài tuần này. Vui lòng nhập tay "Số điểm hoàn thủ công" bên dưới nếu cần hoàn điểm.</div>';
+            } else {
+                let noteParts = rawNote.split(';');
+                noteParts.forEach((part, index) => {
+                    let cleanPart = part.trim();
+                    if (cleanPart) {
+                        let html = '';
+                        // Nếu lỗi này đã từng bị Ban Giám hiệu Gỡ và đóng mộc rồi
+                        if (cleanPart.includes('(ĐÃ GỠ)')) {
+                            html = `
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input border-secondary" type="checkbox" disabled checked>
+                                    <label class="form-check-label text-muted text-decoration-line-through fst-italic" style="font-size: 15px;">
+                                        ${cleanPart}
+                                    </label>
+                                </div>
+                            `;
+                        } else {
+                            // Lỗi "còn sống", cho phép chọn để Gỡ
+                            html = `
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input border-danger shadow-sm" type="checkbox" name="approved_errors[]" value="${cleanPart}" id="err_${index}" style="transform: scale(1.2); margin-right: 10px;">
+                                    <label class="form-check-label fw-bold text-dark" for="err_${index}" style="font-size: 15px;">
+                                        ${cleanPart}
+                                    </label>
+                                </div>
+                            `;
+                        }
+                        container.innerHTML += html;
+                    }
+                });
+            }
+            
+            var myModal = new bootstrap.Modal(document.getElementById('resolveModal'));
+            myModal.show();
+        }
+    </script>
+    {% endif %}
+
+    <!-- JAVASCRIPT HỖ TRỢ VẼ BIỂU ĐỒ CHART.JS -->
+    <script>
+        const labels = {{ chart_labels | tojson }};
+        const data = {{ chart_data | tojson }};
+
+        const ctx = document.getElementById('top10Chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Tổng điểm thi đua',
+                    data: data,
+                    backgroundColor: '#0054a6',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    </script>
+    
+    <!-- THÊM BẮT BUỘC: JS HỖ TRỢ MENU XỔ XUỐNG CỦA SIDEBAR -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

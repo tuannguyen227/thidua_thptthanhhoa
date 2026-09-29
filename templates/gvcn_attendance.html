@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#e11d48">
+    <title>Thống kê Điểm danh GVCN - Hệ thống Quản lý</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; margin: 0; padding: 0; }
+        .glass-card { background: #ffffff; border-radius: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; width: 100%; }
+        
+		.table-responsive-scroll { max-height: calc(100vh - 220px); overflow-y: auto; overflow-x: auto; width: 100%; }
+        .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .table-modern thead th { 
+            position: sticky; top: 0; z-index: 10; background: #f1f5f9; color: #64748b; 
+            font-size: 14px; font-weight: 600; text-transform: uppercase; padding: 16px; 
+            white-space: nowrap; box-shadow: 0 1px 0px #e2e8f0; 
+        }
+        .table-modern tbody td { padding: 16px; font-size: 15px; font-weight: 500; border-bottom: 1px solid #e2e8f0; vertical-align: middle;}
+        .table-modern tbody tr:hover { background-color: #f8fafc; }
+        
+        .bottom-nav {
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%;
+            background-color: #ffffff; box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            border-radius: 24px 24px 0 0; z-index: 1040; padding: 10px 5px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); border-top: 1px solid #e2e8f0;
+        }
+        .bottom-nav-item {
+            flex: 1; text-align: center; color: #94a3b8; text-decoration: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: all 0.3s ease; background: transparent; border: none; padding: 5px 0;
+        }
+        .bottom-nav-item i { font-size: 20px; margin-bottom: 4px; transition: all 0.3s ease; }
+        .bottom-nav-item span { font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+        .bottom-nav-item.active { color: #e11d48; }
+        .bottom-nav-item.active i { transform: translateY(-2px); }
+
+        @media (max-width: 1200px) { .bottom-nav { display: flex; } body { padding-bottom: 85px !important; } }
+        @media (max-width: 768px) {
+            .container-fluid { padding-left: 8px !important; padding-right: 8px !important; }
+            .glass-card { border-radius: 12px; }
+            .table-modern tbody td { padding: 12px 10px !important; font-size: 14px; }
+            .table-modern thead th { padding: 12px 10px !important; font-size: 13px; }
+        }
+
+        @media print {
+            @page { size: A4 portrait; margin: 20mm; }
+            body { background: #fff !important; color: #000 !important; font-family: "Times New Roman", Times, serif !important; overflow: visible !important; }
+            .no-print, .bottom-nav { display: none !important; }
+            .glass-card { border: none !important; box-shadow: none !important; border-radius: 0 !important; }
+            .container-fluid { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            .print-only { display: block !important; }
+            .table-responsive-scroll { max-height: none !important; overflow: visible !important; }
+            .table-modern { border-collapse: collapse !important; margin-top: 15px !important; width: 100% !important; }
+            .table-modern th, .table-modern td { border: 1px solid #000 !important; padding: 8px 10px !important; font-size: 13pt !important; color: #000 !important; box-shadow: none !important;}
+            .table-modern thead th { position: static !important; background: #fff !important; font-weight: bold !important; text-transform: none !important; }
+            .badge { background: transparent !important; color: #000 !important; border: none !important; padding: 0 !important; font-size: 13pt !important; font-weight: normal !important; }
+            .badge i { display: none !important; } 
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body>
+    
+    <div class="container-fluid py-3 py-md-4 px-3 px-xl-5">
+        
+        <!-- ==========================================
+             1. HEADER NHỎ GỌN (Tiêu đề + Nút PDF)
+             ========================================== -->
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+            <div class="d-flex align-items-center gap-2">
+                <a href="/bgh/dashboard" class="btn btn-light shadow-sm d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; border-radius: 10px; color: #475569;" title="Quay lại">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <h5 class="fw-bold text-primary m-0" style="font-size: 16px;">
+                    <i class="fa-solid fa-fingerprint me-1"></i> Báo Cáo Điểm Danh
+                </h5>
+            </div>
+            <button class="btn btn-danger btn-sm shadow-sm fw-bold px-3" style="border-radius: 8px;" onclick="window.print()">
+                <i class="fa-solid fa-file-pdf me-1"></i> PDF
+            </button>
+        </div>
+
+        <div class="glass-card overflow-hidden">
+            
+            <!-- QUỐC HIỆU BẢN IN -->
+            <div class="print-only" style="margin-bottom: 20px;">
+                <table style="width: 100%; border: none;">
+                    <tr>
+                        <td style="width: 45%; text-align: center; vertical-align: top; border: none; font-size: 13pt;">
+                            SỞ GIÁO DỤC VÀ ĐÀO TẠO ĐỒNG NAI<br>
+                            <strong style="text-decoration: underline;">TRƯỜNG THPT THANH HÒA</strong>
+                        </td>
+                        <td style="width: 55%; text-align: center; vertical-align: top; border: none; font-size: 13pt;">
+                            <strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br>
+                            <strong style="text-decoration: underline;">Độc lập - Tự do - Hạnh phúc</strong>
+                        </td>
+                    </tr>
+                </table>
+                <h3 style="text-align: center; font-weight: bold; margin-top: 30px; margin-bottom: 5px; font-size: 16pt;">
+                    BÁO CÁO TỔNG HỢP ĐIỂM DANH GVCN
+                </h3>
+                <p style="text-align: center; font-style: italic; font-size: 13pt; margin-top: 0;">
+                    (Áp dụng: {{ time_value }})
+                </p>
+            </div>
+
+            <!-- ==========================================
+                 2. BẢNG ĐIỀU KHIỂN (Gộp Bộ lọc & Tìm kiếm)
+                 ========================================== -->
+            <div class="card-body p-3 border-bottom bg-white no-print">
+                <form action="/gvcn_attendance_stats" method="GET">
+                    <div class="row g-2">
+                        <!-- Cột 1: Chọn chế độ (Tuần/Tháng/Năm) -->
+                        <div class="col-4">
+                            <select name="time_mode" class="form-select form-select-sm border-0 bg-light fw-bold text-secondary" style="border-radius: 8px; height: 35px;" onchange="this.form.submit()">
+                                <option value="week" {% if time_mode == 'week' %}selected{% endif %}>Theo Tuần</option>
+                                <option value="month" {% if time_mode == 'month' %}selected{% endif %}>Theo Tháng</option>
+                                <option value="semester" {% if time_mode == 'semester' %}selected{% endif %}>Học Kỳ</option>
+                                <option value="year" {% if time_mode == 'year' %}selected{% endif %}>Cả Năm</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Cột 2: Chọn giá trị tương ứng -->
+                        <div class="col-8">
+                            <select name="time_value" class="form-select form-select-sm border-0 bg-light fw-bold text-primary" style="border-radius: 8px; height: 35px;" onchange="this.form.submit()">
+                                {% if time_mode == 'week' %}
+                                    {% for w in available_weeks %}<option value="{{ w }}" {% if time_value == w %}selected{% endif %}>{{ w }}</option>{% endfor %}
+                                {% elif time_mode == 'month' %}
+                                    {% for m in available_months %}<option value="{{ m }}" {% if time_value == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+                                {% elif time_mode == 'semester' %}
+                                    {% for s in available_semesters %}<option value="{{ s }}" {% if time_value == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                                {% elif time_mode == 'year' %}
+                                    {% for y in available_years %}<option value="{{ y }}" {% if time_value == y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <!-- Cột 3: Thanh tìm kiếm nhanh -->
+                        <div class="col-12 mt-2">
+                            <div class="input-group input-group-sm shadow-sm" style="border-radius: 8px;">
+                                <span class="input-group-text border-0 bg-white text-muted" style="border-radius: 8px 0 0 8px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </span>
+                                <input type="text" id="searchInput" class="form-control border-0 bg-white" placeholder="Nhập tên GVCN hoặc Lớp để tìm nhanh..." style="border-radius: 0 8px 8px 0; height: 35px; font-size: 13px;" onkeyup="filterTable()">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- BẢNG DỮ LIỆU -->
+            <div class="table-responsive table-responsive-scroll border-bottom">
+                <table class="table-modern" id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 5%">STT</th>
+                            <th style="width: 15%">Lớp</th>
+                            <th style="width: 25%">Giáo viên Chủ nhiệm</th>
+                            <th class="text-center" style="width: 15%">Tổng Số Buổi</th>
+                            <th style="width: 40%">Lịch sử điểm danh chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in stats_list %}
+                        <tr class="data-row">
+                            <td class="text-center fw-bold text-muted index-col align-middle">{{ loop.index }}</td>
+                            <td class="fw-bold text-primary class-col align-middle">{{ item.branch_name }}</td>
+                            <td class="fw-bold text-dark gvcn-col align-middle">{{ item.gvcn }}</td>
+                            
+                            <!-- CỘT 4: GIAO DIỆN NÚT HUY HIỆU ĐƠN GIẢN -->
+                            <td class="text-center align-middle">
+                                {% if item.count >= 3 %}
+                                    <span class="badge bg-success fs-6 rounded-pill px-3 py-2"><i class="fa-solid fa-check me-1"></i> {{ item.count }} buổi</span>
+                                {% elif item.count > 0 %}
+                                    <span class="badge bg-warning text-dark fs-6 rounded-pill px-3 py-2">{{ item.count }} buổi</span>
+                                {% else %}
+                                    <span class="badge bg-danger fs-6 rounded-pill px-3 py-2"><i class="fa-solid fa-xmark me-1"></i> 0 buổi</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- CỘT 5: GIỮ NGUYÊN CHI TIẾT TỪNG TUẦN -->
+                            <td class="text-start align-middle">
+                                {% if item.weeks %}
+                                    {% for week_name, days in item.weeks.items() %}
+                                        <div class="mb-1">
+                                            <span class="fw-bold text-secondary" style="font-size: 0.85rem; min-width: 60px; display: inline-block;">
+                                                {{ week_name }}:
+                                            </span>
+                                            {% for day in days %}
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1">
+                                                    <i class="fa-solid fa-check"></i> {{ day }}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted fst-italic" style="font-size: 13px;">Chưa ghi nhận</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="fa-regular fa-folder-open fs-1 mb-3 no-print"></i><br>
+                                Chưa có dữ liệu điểm danh nào trong khoảng thời gian này.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- FOOTER BẢN IN -->
+            <div class="print-only" style="margin-top: 30px; font-size: 13pt;">
+                <table style="width: 100%; border: none;">
+                    <tr>
+                        <td style="width: 50%; vertical-align: top; border: none; padding-left: 20px;">
+                            <strong style="font-style: italic;">Nơi nhận:</strong><br>
+                            - Ban Giám hiệu (để b/c);<br>
+                            - Các GVCN (để t/h);<br>
+                            - Lưu: VP, Đoàn TN.
+                        </td>
+                        <td style="width: 50%; text-align: center; vertical-align: top; border: none;">
+                            <em style="font-size: 13pt;">Đồng Nai, ngày .... tháng .... năm 202...</em><br>
+                            <strong>TM. BAN CHẤP HÀNH ĐOÀN TRƯỜNG</strong><br>
+                            <span style="font-style: italic; font-size: 11pt;">(Ký và ghi rõ họ tên)</span>
+                            <br><br><br><br><br>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- THANH ĐIỀU HƯỚNG DƯỚI ĐÁY -->
+    <div class="bottom-nav no-print" id="mobileBottomNav">
+        <a href="/dashboard" class="bottom-nav-item">
+            <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
+        </a>
+        <a href="/bgh/dashboard" class="bottom-nav-item">
+            <i class="fa-solid fa-building-columns"></i><span>Điều hành</span>
+        </a>
+        <a href="/gvcn_attendance_stats" class="bottom-nav-item active">
+            <i class="fa-solid fa-fingerprint"></i><span>Điểm danh</span>
+        </a>
+        <a href="/school_monthly_analysis" class="bottom-nav-item">
+            <i class="fa-solid fa-chart-pie"></i><span>Báo cáo</span>
+        </a>
+    </div>
+
+    <!-- SCRIPT TÌM KIẾM THÔNG MINH GVCN/LỚP THEO THỜI GIAN THỰC -->
+    <script>
+        function filterTable() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let rows = document.querySelectorAll("#attendanceTable .data-row");
+            let count = 1;
+            
+            rows.forEach(row => {
+                let lopText = row.querySelector(".class-col").innerText.toLowerCase();
+                let gvcnText = row.querySelector(".gvcn-col").innerText.toLowerCase();
+                
+                if (lopText.includes(input) || gvcnText.includes(input)) {
+                    row.style.display = "";
+                    row.querySelector(".index-col").innerText = count++;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+    </script>
+</body>
+</html>

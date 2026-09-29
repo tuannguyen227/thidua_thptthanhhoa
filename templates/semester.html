@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thi đua Học kỳ - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; overflow: hidden; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; z-index: 1000; overflow-y: auto; }
+        .sidebar h4 { font-size: 18px; font-weight: bold; text-align: center; padding-bottom: 15px; border-bottom: 1px solid #0054a6; }
+        .sidebar .nav-link { color: #cce6ff; font-weight: 600; padding: 12px 20px; font-size: 14px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #002244; color: white; border-left: 4px solid #4da6ff; }
+        
+        .main-content { margin-left: 260px; padding: 20px 25px; height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        .header-bar { background-color: white; padding: 12px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 12px; flex-shrink: 0; }
+        .custom-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; display: flex; flex-direction: column; margin-bottom: 15px; flex: 1; min-height: 180px; overflow: hidden; }
+        
+        .table-container-scroll { flex: 1; overflow-y: auto; background: white; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+        .table-hover tbody tr:hover { background-color: #f8faff; }
+        
+        .table thead th { position: sticky; top: 0; background-color: #FCE4D6 !important; font-size: 14px; color: #495057; vertical-align: middle; z-index: 10; border-bottom: 2px solid #dee2e6; }
+        .table td { vertical-align: middle; }
+        
+        /* Hiệu ứng huy chương chuẩn xác */
+        .medal-gold { background-color: #ffc107; color: #856404; font-size: 0.9rem; padding: 4px 10px; box-shadow: 0 2px 4px rgba(255, 193, 7, 0.4); }
+        .medal-silver { background-color: #e0e0e0; color: #5c5c5c; font-size: 0.9rem; padding: 4px 10px; box-shadow: 0 2px 4px rgba(224, 224, 224, 0.4); }
+        .medal-bronze { background-color: #cd7f32; color: #fff; font-size: 0.9rem; padding: 4px 10px; box-shadow: 0 2px 4px rgba(205, 127, 50, 0.4); }
+        
+        .week-selector .btn-check:checked + .btn-outline-primary { background-color: #0d6efd; color: white; border-color: #0d6efd; box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3); }
+        .week-selector .btn-outline-primary { border-color: #aecdfc; color: #0d6efd; border-radius: 8px; padding: 6px 14px; transition: all 0.2s; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    {% include 'sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="flex-shrink-0">
+            <div class="header-bar d-flex justify-content-between align-items-center mb-3">
+                <h5 class="m-0 fw-bold text-secondary">
+                    <i class="fa-solid fa-graduation-cap text-danger me-2"></i> Trang chủ / Thi đua / Báo cáo Học kỳ
+                </h5>
+                <div class="fw-bold text-danger bg-light px-3 py-1 rounded border border-danger-subtle small">
+                    <i class="fa-solid fa-flag-checkered"></i> Tổng kết Học kỳ
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show mb-3 py-2 shadow-sm">
+                    <i class="fa-solid {% if category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <div class="card custom-card border-danger shadow-sm mb-3" style="border-top: 4px solid #dc3545; flex: unset;">
+                <div class="card-header bg-white pt-2 pb-2 border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-danger m-0"><i class="fa-solid fa-sliders"></i> Cấu hình dữ liệu học kỳ</h6>
+                    
+                    {% if semester_data %}
+                    <div>
+                        <!-- Nút Lưu Hệ Thống -->
+                        <button type="submit" form="semesterForm" onclick="document.getElementById('actionInput').value='save';" class="btn btn-sm btn-info text-white fw-bold px-3 me-2 shadow-sm">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Hệ Thống
+                        </button>
+                        
+                        <!-- Nút Xem Trước & Xuất Excel -->
+                        <button type="button" class="btn btn-sm btn-success fw-bold px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#previewModal">
+                            <i class="fa-solid fa-eye me-1"></i> Xem trước & Xuất Excel
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body bg-light py-2">
+                    <form method="POST" action="/semester" id="semesterForm" class="row g-2 align-items-center">
+                        <input type="hidden" name="action" id="actionInput" value="view">
+                        
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold text-dark small text-uppercase mb-1">Chọn Học Kỳ</label>
+                            <div class="input-group input-group-sm shadow-sm">
+                                <span class="input-group-text bg-white text-danger border-end-0"><i class="fa-solid fa-graduation-cap"></i></span>
+                                <!-- NÂNG CẤP LÕI: Dùng phương thức GET (tải lại web) để bốc đúng dữ liệu từ DB -->
+                                <select class="form-select form-select-sm fw-bold text-danger border-start-0 ps-0" name="semester" onchange="window.location.href='/semester?semester=' + encodeURIComponent(this.value);">
+                                    <option value="Học kỳ 1" {% if selected_semester == 'Học kỳ 1' %}selected{% endif %}>Học kỳ 1</option>
+                                    <option value="Học kỳ 2" {% if selected_semester == 'Học kỳ 2' %}selected{% endif %}>Học kỳ 2</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold text-dark small text-uppercase mb-1 w-100 d-flex justify-content-between align-items-end">
+                                <span>☑️ Chọn các THÁNG thuộc Học kỳ (Tháng đã dùng ở kỳ khác sẽ có hình 🔒)</span>
+                            </label>
+                            <div class="week-selector d-flex flex-wrap gap-2 p-2 bg-white rounded shadow-sm border" style="max-height: 60px; overflow-y: auto;">
+                                {% for m in available_months %}
+                                    <!-- HIỂN THỊ LOGIC TỰ DO: Chạm là sáng, ngoại trừ các tháng đã chốt kỳ khác -->
+                                    {% set is_checked = (m in selected_months) %}
+                                    {% set is_used_others = (m in used_by_other_semesters) %}
+                                    {% set is_disabled = is_used_others %}
+
+                                    <input type="checkbox" class="btn-check" id="month_{{ loop.index }}" name="months" value="{{ m }}" 
+                                        {% if is_checked %}checked{% endif %}
+                                        {% if is_disabled %}disabled{% endif %}>
+                                    
+                                    <label class="btn btn-outline-primary btn-sm fw-bold shadow-none {% if is_disabled %}opacity-50 border-secondary text-secondary{% endif %}" 
+                                           for="month_{{ loop.index }}" 
+                                           title="{% if is_disabled %}Tháng này đã được chốt ở Học kỳ khác{% endif %}">
+                                        <i class="fa-solid fa-check {% if not is_checked %}d-none{% endif %}"></i> {{ m }}
+                                        {% if is_disabled %}
+                                            <i class="fa-solid fa-lock ms-1 text-secondary" style="font-size: 10px;"></i>
+                                        {% endif %}
+                                    </label>
+                                {% else %}
+                                    <div class="text-danger fst-italic w-100 small">Chưa có dữ liệu điểm Tháng nào được ghi nhận.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="col-md-2 text-end">
+                            <label class="form-label d-block mb-1">&nbsp;</label>
+                            <button type="submit" onclick="document.getElementById('actionInput').value='view';" class="btn btn-danger btn-sm fw-bold w-100 shadow-sm py-2">
+                                <i class="fa-solid fa-calculator me-1"></i> Thống kê
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢNG KẾT QUẢ NGOÀI MÀN HÌNH CHÍNH -->
+        {% if semester_data %}
+            {% for grp_name in semester_data.keys()|sort %}
+            <div class="card custom-card shadow-sm border-0">
+                <div class="card-header bg-white py-2 border-bottom flex-shrink-0">
+                    <h6 class="m-0 fw-bold text-primary text-uppercase">
+                        <i class="fa-solid fa-layer-group"></i> BẢNG TỔNG KẾT {{ selected_semester|upper }} - {{ grp_name }}
+                    </h6>
+                </div>
+                
+                <div class="table-container-scroll">
+                    <table class="table table-hover table-bordered m-0 text-center align-middle">
+                        <thead class="text-uppercase">
+                            <tr>
+                                <th style="width: 8%;">Hạng</th>
+                                <th style="width: 15%;">Tên Chi đoàn</th>
+                                
+                                {% for m in selected_months %}
+                                    <th>{{ m|replace('Tháng ', 'T.') }}</th>
+                                {% endfor %}
+                                
+                                <th style="width: 10%;">Tổng Điểm</th>
+                                
+                                {% if selected_semester == "Học kỳ 2" %}
+                                    <th style="width: 10%;">Hạng HK1</th>
+                                    <th style="width: 15%;">Tăng/Giảm</th>
+                                {% endif %}
+                                
+                                <th style="width: 20%;">Giáo viên Chủ nhiệm</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in semester_data[grp_name] %}
+                            <tr>
+                                <td>
+                                    <!-- Hiệu ứng huy chương màn hình chính -->
+                                    {% if item.rank == 1 %}
+                                        <span class="badge rounded-pill medal-gold"><i class="fa-solid fa-trophy me-1"></i> TOP 1</span>
+                                    {% elif item.rank == 2 %}
+                                        <span class="badge rounded-pill medal-silver"><i class="fa-solid fa-medal me-1"></i> TOP 2</span>
+                                    {% elif item.rank == 3 %}
+                                        <span class="badge rounded-pill medal-bronze"><i class="fa-solid fa-award me-1"></i> TOP 3</span>
+                                    {% else %}
+                                        <span class="fw-bold text-secondary fs-6">{{ item.rank }}</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="fw-bold text-primary fs-6">{{ item.branch_name }}</td>
+                                
+                                {% for m in selected_months %}
+                                    {% set m_score = item.month_scores.get(m, 0.0) %}
+                                    <td>{{ m_score|int if m_score % 1 == 0 else m_score }}</td>
+                                {% endfor %}
+                                
+                                <td class="fw-bold text-danger fs-5" style="background-color: #fff9fa;">
+                                    {{ item.total_score|int if item.total_score % 1 == 0 else item.total_score }}
+                                </td>
+
+                                {% if selected_semester == "Học kỳ 2" %}
+                                    <td class="fw-bold text-muted">{{ item.prev_rank }}</td>
+                                    <td class="fw-bold">
+                                        {% if 'Tăng' in item.change_str %}
+                                            <span class="text-success"><i class="fa-solid fa-arrow-trend-up"></i> {{ item.change_str }}</span>
+                                        {% elif 'Giảm' in item.change_str %}
+                                            <span class="text-danger"><i class="fa-solid fa-arrow-trend-down"></i> {{ item.change_str }}</span>
+                                        {% else %}
+                                            <span class="text-warning"><i class="fa-solid fa-minus"></i> {{ item.change_str }}</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                
+                                <td class="text-start ps-4 text-dark">{{ item.gvcn if item.gvcn else '<i class="text-muted small">Chưa có</i>'|safe }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- MODAL XEM TRƯỚC BÁO CÁO HỌC KỲ (CHUẨN FORM EXCEL) -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white py-2">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-magnifying-glass me-2"></i> Xem trước Báo Cáo Học Kỳ - Bản in Excel</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-light p-4">
+                    
+                    <!-- Khung giấy A4 giả lập -->
+                    <div class="bg-white p-5 border rounded shadow-sm mx-auto" style="font-family: 'Times New Roman', serif; max-width: 1050px; color: black;">
+                        
+                        <!-- Tiêu đề Header -->
+                        <div class="row text-center fw-bold mb-4" style="font-size: 15px;">
+                            <div class="col-5"><div>ĐOÀN TRƯỜNG THPT THANH HÒA</div></div>
+                            <div class="col-2"></div>
+                            <div class="col-5"><div>ĐOÀN TNCS HỒ CHÍ MINH</div></div>
+                        </div>
+        
+                        <div class="text-center mb-4">
+                            <h4 class="fw-bold mb-1">ĐIỂM THI ĐUA {{ selected_semester|upper }}</h4>
+                            <div class="fst-italic fs-6 mb-1">(Tổng hợp điểm từ: {{ selected_months|join(', ') }})</div>
+                            <div class="fw-bold fs-6 mt-2">NĂM HỌC: {{ active_year.name if active_year else 'Chưa thiết lập' }}</div>
+                        </div>
+        
+                        <!-- Kết xuất Dữ liệu điểm -->
+                        {% if semester_data %}
+                            {% for grp_name in semester_data.keys()|sort %}
+                                <div class="fw-bold fst-italic mb-2 mt-4 fs-5">{{ grp_name }}</div>
+                                <div class="table-responsive mb-4">
+                                    <table class="table table-bordered table-sm text-center align-middle border-dark" style="border-color: black !important;">
+                                        <thead class="fw-bold" style="background-color: #FCE4D6;">
+                                            <tr>
+                                                <th style="width: 5%;">STT</th>
+                                                <th style="width: 15%;">LỚP</th>
+                                                <!-- Cột Tháng -->
+                                                {% for m in selected_months %}
+                                                    <th>{{ m|replace('Tháng ', 'T.') }}</th>
+                                                {% endfor %}
+                                                <th style="width: 10%;">TỔNG ĐIỂM</th>
+                                                
+                                                <!-- Tự động đổi form nếu là HK2 -->
+                                                {% if selected_semester == "Học kỳ 1" %}
+                                                    <th style="width: 10%;">HẠNG<br>HIỆN TẠI</th>
+                                                {% else %}
+                                                    <th style="width: 9%;">XH. KỲ<br>TRƯỚC</th>
+                                                    <th style="width: 9%;">HẠNG<br>HIỆN TẠI</th>
+                                                    <th style="width: 12%;">TĂNG/GIẢM</th>
+                                                {% endif %}
+                                                <th style="width: 18%;">GVCN</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in semester_data[grp_name] %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td class="text-start ps-2 fw-bold">{{ item.branch_name }}</td>
+                                                
+                                                {% for m in selected_months %}
+                                                    {% set m_score = item.month_scores.get(m, 0.0) %}
+                                                    <td>{{ m_score|int if m_score % 1 == 0 else m_score }}</td>
+                                                {% endfor %}
+        
+                                                <td class="fw-bold text-danger">
+                                                    {{ item.total_score|int if item.total_score % 1 == 0 else item.total_score }}
+                                                </td>
+
+                                                {% if selected_semester == "Học kỳ 1" %}
+                                                    <!-- Huy chương trong Modal cho HK1 -->
+                                                    <td>
+                                                        {% if item.rank == 1 %}
+                                                            <span class="badge rounded-pill medal-gold"><i class="fa-solid fa-trophy me-1"></i> TOP 1</span>
+                                                        {% elif item.rank == 2 %}
+                                                            <span class="badge rounded-pill medal-silver"><i class="fa-solid fa-medal me-1"></i> TOP 2</span>
+                                                        {% elif item.rank == 3 %}
+                                                            <span class="badge rounded-pill medal-bronze"><i class="fa-solid fa-award me-1"></i> TOP 3</span>
+                                                        {% else %}
+                                                            <span class="fw-bold fs-6">{{ item.rank }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                {% else %}
+                                                    <td class="fw-bold">{{ item.prev_rank }}</td>
+                                                    
+                                                    <!-- Huy chương trong Modal cho HK2 -->
+                                                    <td>
+                                                        {% if item.rank == 1 %}
+                                                            <span class="badge rounded-pill medal-gold"><i class="fa-solid fa-trophy me-1"></i> TOP 1</span>
+                                                        {% elif item.rank == 2 %}
+                                                            <span class="badge rounded-pill medal-silver"><i class="fa-solid fa-medal me-1"></i> TOP 2</span>
+                                                        {% elif item.rank == 3 %}
+                                                            <span class="badge rounded-pill medal-bronze"><i class="fa-solid fa-award me-1"></i> TOP 3</span>
+                                                        {% else %}
+                                                            <span class="fw-bold fs-6">{{ item.rank }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="fw-bold">
+                                                        {% if 'Tăng' in item.change_str %}
+                                                            <span style="color: #008000;"><i class="fa-solid fa-arrow-trend-up"></i> {{ item.change_str }}</span>
+                                                        {% elif 'Giảm' in item.change_str %}
+                                                            <span style="color: #FF0000;"><i class="fa-solid fa-arrow-trend-down"></i> {{ item.change_str }}</span>
+                                                        {% else %}
+                                                            <span><i class="fa-solid fa-minus"></i> {{ item.change_str }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endif %}
+
+                                                <td class="text-start ps-2">{{ item.gvcn }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+        
+                        <div class="row mt-5 mb-3">
+                            <div class="col-7"></div>
+                            <div class="col-5 text-center fw-bold fs-6">TM. BCH ĐOÀN TRƯỜNG</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white py-2">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <!-- Nút Tải chính thức -->
+                    <form method="POST" action="/export_semester_excel" class="m-0">
+                        <input type="hidden" name="semester" value="{{ selected_semester }}">
+                        {% for m in selected_months %}
+                            <input type="hidden" name="months" value="{{ m }}">
+                        {% endfor %}
+                        <button type="submit" class="btn btn-success fw-bold" onclick="bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();">
+                            <i class="fa-solid fa-file-excel me-1"></i> Xác nhận & Tải Excel
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Cập nhật giao diện khi bấm Checkbox
+            document.querySelectorAll('.week-selector .btn-check').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const icon = this.nextElementSibling.querySelector('.fa-check');
+                    if(icon) {
+                        if (this.checked) icon.classList.remove('d-none');
+                        else icon.classList.add('d-none');
+                    }
+                });
+                if(checkbox.checked) {
+                    const icon = checkbox.nextElementSibling.querySelector('.fa-check');
+                    if(icon) icon.classList.remove('d-none');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo Chiến lược - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; z-index: 1000; overflow-y: auto;}
+        .sidebar h4 { font-size: 18px; font-weight: bold; text-align: center; padding-bottom: 15px; border-bottom: 1px solid #0054a6; }
+        .sidebar .nav-link { color: #cce6ff; font-weight: 600; padding: 12px 20px; font-size: 14px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #002244; color: white; border-left: 4px solid #4da6ff; }
+        
+        .main-content { margin-left: 260px; padding: 25px; padding-bottom: 50px; }
+        .header-bar { background-color: white; padding: 15px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        
+        .nav-tabs .nav-link { font-weight: 600; color: #495057; border: 1px solid transparent; background-color: #e9ecef; margin-right: 2px; border-radius: 5px 5px 0 0; padding: 12px 20px;}
+        .nav-tabs .nav-link.active { color: white; background-color: #0054a6; border-color: #0054a6; }
+        .tab-content { background: white; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 8px 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        .chart-container { position: relative; height: 300px; width: 100%; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; background: white;}
+        .table th { background-color: #0054a6 !important; color: white; vertical-align: middle; text-align: center;}
+    </style>
+</head>
+<body>
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="header-bar d-flex justify-content-between align-items-center">
+            <h5 class="m-0 fw-bold text-secondary">
+                <i class="fa-solid fa-chart-line text-primary me-2"></i> Trang chủ / Báo cáo & Thống kê
+            </h5>
+            <div class="d-flex align-items-center gap-3">
+                <form method="GET" action="/reports" class="d-flex gap-2 m-0" id="filterFormYear">
+                    <input type="hidden" name="active_tab" value="{{ active_tab }}">
+                    <input type="hidden" name="time_filter" value="{{ selected_month_filter }}">
+                    <select name="year_id" class="form-select fw-bold shadow-sm" onchange="document.getElementById('filterFormYear').submit()">
+                        {% for y in years %}
+                            <option value="{{ y.id }}" {% if y.id == selected_year_id %}selected{% endif %}>{{ y.name }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show shadow-sm">
+                {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- HỆ THỐNG TABS ĐỒNG BỘ -->
+        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'tab-dashboard' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-dashboard" type="button" onclick="document.getElementById('activeTabInput1').value='tab-dashboard'; document.getElementById('activeTabInput2').value='tab-dashboard';"><i class="fa-solid fa-chart-pie me-1"></i> Biểu đồ Trực quan</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'tab-analysis' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-analysis" type="button" onclick="document.getElementById('activeTabInput1').value='tab-analysis'; document.getElementById('activeTabInput2').value='tab-analysis';"><i class="fa-solid fa-magnifying-glass-chart me-1"></i> Phân tích Chuyên sâu</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'tab-academic' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-academic" type="button" onclick="document.getElementById('activeTabInput1').value='tab-academic'; document.getElementById('activeTabInput2').value='tab-academic';"><i class="fa-solid fa-medal me-1 text-warning"></i> Bảng Vàng Học Tập</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'tab-export' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-export" type="button" onclick="document.getElementById('activeTabInput1').value='tab-export'; document.getElementById('activeTabInput2').value='tab-export';"><i class="fa-solid fa-file-excel me-1"></i> Kết xuất Excel</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="reportTabsContent">
+            <!-- TAB 1: DASHBOARD BIỂU ĐỒ -->
+            <div class="tab-pane fade {% if active_tab == 'tab-dashboard' %}show active{% endif %}" id="tab-dashboard" role="tabpanel">
+                <form method="GET" action="/reports" class="d-flex gap-2 mb-4 bg-light p-3 rounded border" id="filterForm1">
+                    <input type="hidden" name="year_id" value="{{ selected_year_id }}">
+                    <input type="hidden" name="active_tab" id="activeTabInput1" value="tab-dashboard">
+                    <label class="fw-bold align-self-center">Thống kê theo:</label>
+                    <select name="time_filter" class="form-select w-auto shadow-sm" onchange="document.getElementById('filterForm1').submit()">
+                        <option value="Tất cả" {% if selected_month_filter == 'Tất cả' %}selected{% endif %}>Tất cả các tuần</option>
+                        {% for m in available_months %}
+                            <option value="{{ m }}" {% if m == selected_month_filter %}selected{% endif %}>Chỉ {{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                <div class="row g-4">
+                    <div class="col-md-6"><div class="chart-container"><canvas id="barChart"></canvas></div></div>
+                    <div class="col-md-6"><div class="chart-container"><canvas id="lineChart"></canvas></div></div>
+                    <div class="col-md-6"><div class="chart-container"><canvas id="pieBadChart"></canvas></div></div>
+                    <div class="col-md-6"><div class="chart-container"><canvas id="pieGoodChart"></canvas></div></div>
+                </div>
+            </div>
+
+            <!-- TAB 2: PHÂN TÍCH CHUYÊN SÂU -->
+            <div class="tab-pane fade {% if active_tab == 'tab-analysis' %}show active{% endif %}" id="tab-analysis" role="tabpanel">
+                <h5 class="fw-bold text-primary mb-3">1. ĐÁNH GIÁ VÀ XẾP HẠNG TỔNG QUAN</h5>
+                <table class="table table-bordered table-hover shadow-sm mb-5">
+                    <thead><tr><th style="width: 30%">Tiêu chí Phân tích</th><th style="width: 30%">Dữ liệu Thực tế</th><th style="width: 40%">Đánh giá / Phương hướng</th></tr></thead>
+                    <tbody>
+                        {% for row in analysis_general %}
+                        <tr><td class="fw-bold text-dark">{{ row[0] }}</td><td class="text-center text-primary fw-bold">{{ row[1] }}</td><td class="text-muted fst-italic">{{ row[2] }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted">Chưa có dữ liệu thi đua.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <h5 class="fw-bold text-danger mb-3">2. CHI TIẾT LỖI VI PHẠM TỪNG CHI ĐOÀN (NỀ NẾP)</h5>
+                <table class="table table-bordered table-hover shadow-sm">
+                    <thead><tr><th style="width: 15%; background-color: #dc3545 !important;">Chi đoàn</th><th style="width: 15%; background-color: #dc3545 !important;">Tổng Lượt Lỗi</th><th style="width: 70%; background-color: #dc3545 !important; text-align: left !important; padding-left: 15px;">Chi tiết Từng lỗi (Tên lỗi x Số lần)</th></tr></thead>
+                    <tbody>
+                        {% for row in analysis_details %}
+                        <tr><td class="text-center fw-bold">{{ row.class }}</td><td class="text-center fw-bold text-danger fs-5">{{ row.qty }}</td><td class="text-start">{{ row.details }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted">Thật tuyệt vời! Chưa ghi nhận vi phạm nề nếp nào.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- TAB 3: BẢNG VÀNG HỌC TẬP -->
+            <div class="tab-pane fade {% if active_tab == 'tab-academic' %}show active{% endif %}" id="tab-academic" role="tabpanel">
+                <form method="GET" action="/reports" id="filterForm2" class="row g-3 align-items-end bg-light p-3 rounded border mb-3">
+                    <input type="hidden" name="year_id" value="{{ selected_year_id }}">
+                    <input type="hidden" name="active_tab" id="activeTabInput2" value="tab-academic">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-dark small text-uppercase">Thời gian xếp hạng:</label>
+                        <select name="honor_time" class="form-select fw-bold border-secondary shadow-sm" onchange="document.getElementById('filterForm2').submit()">
+                            {% for opt in time_options_honor %}
+                                <option value="{{ opt }}" {% if opt == honor_time %}selected{% endif %}>{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-dark small text-uppercase">Lọc theo Khối:</label>
+                        <select name="honor_grade" class="form-select fw-bold border-secondary shadow-sm" onchange="document.getElementById('filterForm2').submit()">
+                            <option value="Tất cả các khối" {% if honor_grade == 'Tất cả các khối' %}selected{% endif %}>Tất cả các khối</option>
+                            <option value="Khối 10" {% if honor_grade == 'Khối 10' %}selected{% endif %}>Khối 10</option>
+                            <option value="Khối 11" {% if honor_grade == 'Khối 11' %}selected{% endif %}>Khối 11</option>
+                            <option value="Khối 12" {% if honor_grade == 'Khối 12' %}selected{% endif %}>Khối 12</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button type="submit" formmethod="POST" formaction="/export_academic_honor" class="btn btn-warning fw-bold shadow-sm">
+                            <i class="fa-solid fa-file-excel me-1 text-dark"></i> Xuất Bảng Vàng
+                        </button>
+                    </div>
+                    <input type="hidden" name="table_data" value="{{ honor_data | tojson | forceescape }}">
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered m-0 text-center align-middle" id="honorTable">
+                        <thead style="cursor: pointer;">
+                            <tr>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(0, 'num')">STT <i class="fa-solid fa-sort"></i></th>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(1, 'str')">Chi đoàn <i class="fa-solid fa-sort"></i></th>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(2, 'str')">Khối <i class="fa-solid fa-sort"></i></th>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(3, 'num')">SL Điểm 8 <i class="fa-solid fa-sort"></i></th>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(4, 'num')">SL Điểm 9 <i class="fa-solid fa-sort"></i></th>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(5, 'num')">SL Điểm 10 <i class="fa-solid fa-sort"></i></th>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(6, 'num')">Tuần Tốt <i class="fa-solid fa-sort"></i></th>
+                                <th style="background-color:#0054a6!important;color:white;" onclick="sortTable(7, 'num')">TỔNG ĐIỂM TỐT <i class="fa-solid fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in honor_data %}
+                            <tr>
+                                <td class="fw-bold">{{ loop.index }}</td>
+                                <td class="fw-bold text-dark">{{ d.name }}</td><td>{{ d.khoi }}</td>
+                                <td class="fw-bold text-primary">{{ d.c8 if d.c8 > 0 else '<span class="text-dark">0</span>'|safe }}</td>
+                                <td class="fw-bold text-success">{{ d.c9 if d.c9 > 0 else '<span class="text-dark">0</span>'|safe }}</td>
+                                <td class="fw-bold text-danger">{{ d.c10 if d.c10 > 0 else '<span class="text-dark">0</span>'|safe }}</td>
+                                <td class="fw-bold" style="color: purple;">{{ d.tuan_tot if d.tuan_tot > 0 else '<span class="text-dark">0</span>'|safe }}</td>
+                                <td class="fw-bold fs-5 text-danger" style="background-color: #fff9fa;">{{ d.total }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="8" class="text-muted fst-italic py-4">Chưa có dữ liệu Bảng Vàng.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: KẾT XUẤT EXCEL -->
+            <div class="tab-pane fade {% if active_tab == 'tab-export' %}show active{% endif %}" id="tab-export" role="tabpanel">
+                <h5 class="fw-bold text-dark mb-4">📑 HỆ THỐNG BÁO CÁO CHIẾN LƯỢC & QUẢN LÝ TỰ ĐỘNG</h5>
+                <div class="card bg-light border-0 shadow-sm p-4" style="max-width: 600px;">
+                    <form method="POST" id="exportForm">
+                        <input type="hidden" name="export_year_id" value="{{ selected_year_id }}">
+                        <div class="mb-4">
+                            <label class="fw-bold mb-2">Chọn Tháng chốt báo cáo:</label>
+                            <select name="export_month" class="form-select border-primary shadow-sm" required>
+                                {% for m in available_months %}<option value="{{ m }}">{{ m }}</option>
+                                {% else %}<option value="">Chưa có dữ liệu tháng nào</option>{% endfor %}
+                            </select>
+                            <small class="text-muted mt-1 d-block">*Lưu ý: Bạn phải [Chốt điểm] ở menu Thi Đua Tháng trước khi xuất.</small>
+                        </div>
+                        <div class="d-grid gap-3">
+                            <button type="submit" formaction="/export_chronic_violations" class="btn btn-danger btn-lg fw-bold shadow-sm" {% if not available_months %}disabled{% endif %}>
+                                <i class="fa-solid fa-triangle-exclamation me-2"></i> Xuất Báo Cáo CẢNH BÁO VI PHẠM
+                            </button>
+                            <button type="submit" formaction="/export_monthly_summary" class="btn btn-success btn-lg fw-bold shadow-sm" {% if not available_months %}disabled{% endif %}>
+                                <i class="fa-solid fa-file-excel me-2"></i> Xuất TỔNG HỢP THI ĐUA THÁNG
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const rawData = `{{ chart_data_json|safe }}`;
+            const data = JSON.parse(rawData);
+            if(data.bar_labels.length > 0) {
+                new Chart(document.getElementById('barChart'), { type: 'bar', data: { labels: data.bar_labels, datasets: [{ label: 'Tổng Điểm', data: data.bar_values, backgroundColor: data.bar_colors, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Top Chi đoàn Xuất sắc & Yếu kém', font: {size: 16} }, legend: { display: false } } } });
+            } else { document.getElementById('barChart').parentElement.innerHTML = '<div class="h-100 d-flex align-items-center justify-content-center text-muted">Chưa có dữ liệu</div>'; }
+            if(data.line_labels.length > 0) {
+                new Chart(document.getElementById('lineChart'), { type: 'line', data: { labels: data.line_labels, datasets: [{ label: 'Điểm Trung Bình', data: data.line_values, borderColor: '#0054a6', backgroundColor: 'rgba(0, 84, 166, 0.1)', borderWidth: 2, pointRadius: 4, fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Theo dõi điểm Trung bình toàn trường', font: {size: 16} }, legend: { display: false } } } });
+            } else { document.getElementById('lineChart').parentElement.innerHTML = '<div class="h-100 d-flex align-items-center justify-content-center text-muted">Chưa có dữ liệu</div>'; }
+            if(data.pie_bad_labels.length > 0) {
+                new Chart(document.getElementById('pieBadChart'), { type: 'doughnut', data: { labels: data.pie_bad_labels, datasets: [{ data: data.pie_bad_values, backgroundColor: ['#dc3545', '#e4606d', '#eb8c95', '#f2b8bc', '#f8e3e4'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Tỷ trọng Lỗi Vi Phạm (Toàn trường)', font: {size: 16} }, legend: { position: 'right' } } } });
+            } else { document.getElementById('pieBadChart').parentElement.innerHTML = '<div class="h-100 d-flex align-items-center justify-content-center text-muted">Chưa có vi phạm nào</div>'; }
+            if(data.pie_good_labels.length > 0) {
+                new Chart(document.getElementById('pieGoodChart'), { type: 'doughnut', data: { labels: data.pie_good_labels, datasets: [{ data: data.pie_good_values, backgroundColor: ['#28a745', '#5cd675', '#8fdfa0', '#c1e8cb', '#e9f7ec'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Tỷ trọng Số Lượng Điểm Tốt', font: {size: 16} }, legend: { position: 'right' } } } });
+            } else { document.getElementById('pieGoodChart').parentElement.innerHTML = '<div class="h-100 d-flex align-items-center justify-content-center text-muted">Chưa ghi nhận điểm tốt</div>'; }
+        });
+
+        let sortDirection = false;
+        function sortTable(columnIndex, type) {
+            const table = document.getElementById("honorTable");
+            const tbody = table.tBodies[0];
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            if(rows.length === 0 || rows[0].cells.length === 1) return;
+            sortDirection = !sortDirection;
+            rows.sort((a, b) => {
+                let aVal = a.cells[columnIndex].innerText.trim(); let bVal = b.cells[columnIndex].innerText.trim();
+                if (type === 'num') { aVal = parseInt(aVal) || 0; bVal = parseInt(bVal) || 0; return sortDirection ? aVal - bVal : bVal - aVal; }
+                return sortDirection ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            });
+            rows.forEach((row, idx) => { row.cells[0].innerText = idx + 1; tbody.appendChild(row); });
+        }
+    </script>
+</body>
+</html>

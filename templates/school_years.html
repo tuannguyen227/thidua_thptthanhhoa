@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cấu hình Năm học - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; }
+        .sidebar h4 { font-size: 18px; font-weight: bold; text-align: center; padding-bottom: 15px; border-bottom: 1px solid #0054a6; }
+        .sidebar .nav-link { color: #cce6ff; font-weight: 600; padding: 12px 20px; font-size: 14px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #002244; color: white; border-left: 4px solid #4da6ff; }
+        .main-content { margin-left: 260px; padding: 25px; }
+        .header-bar { background-color: white; padding: 15px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .custom-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    {% include 'sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="header-bar d-flex justify-content-between align-items-center">
+            <h5 class="m-0 fw-bold text-secondary">Hệ thống / Cấu hình Năm học</h5>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <!-- FORM THÊM NĂM HỌC -->
+            <div class="col-md-4">
+                <div class="card custom-card border-primary mb-4">
+                    <div class="card-header bg-primary text-white fw-bold py-3">
+                        <i class="fa-solid fa-calendar-plus"></i> Tạo Năm học mới
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/add_school_year">
+                            <div class="mb-4">
+                                <label class="fw-bold form-label text-secondary small">Tên Năm học</label>
+                                <input type="text" class="form-control" name="name" placeholder="VD: 2026-2027" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold">Khởi tạo Năm học</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ======================================================== -->
+                <!-- KHU VỰC NGUY HIỂM: RESET DỮ LIỆU HỆ THỐNG                -->
+                <!-- ======================================================== -->
+                <div class="card custom-card border-danger" style="border-top: 4px solid #dc3545 !important;">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="fw-bold m-0 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Thiết lập lại dữ liệu (Reset)</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            Đưa toàn bộ dữ liệu thi đua về trạng thái ban đầu khi chưa bắt đầu năm học.<br>
+                            <span class="text-danger fw-bold">Hệ thống sẽ xóa sạch:</span> Điểm số, Sổ đen, Phúc khảo, Lịch trực, Nhật ký và Điểm danh GVCN.<br>
+                            <span class="text-success fw-bold">Được giữ lại an toàn:</span> Danh sách Chi đoàn, Đội Sao đỏ & Tài khoản người dùng.
+                        </p>
+                        <button type="button" class="btn btn-danger w-100 fw-bold shadow-sm py-2" data-bs-toggle="modal" data-bs-target="#resetSystemModal">
+                            <i class="fa-solid fa-rotate-left me-2"></i> Reset Dữ Liệu Hệ Thống
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DANH SÁCH NĂM HỌC -->
+            <div class="col-md-8">
+                <div class="card custom-card">
+                    <div class="card-header bg-white fw-bold text-primary py-3">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Danh sách Năm học trên hệ thống
+                    </div>
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-hover table-bordered m-0 text-center align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tên Năm học</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thiết lập & Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for year in years %}
+                                <tr>
+                                    <td class="fw-bold fs-6 text-primary">{{ year.name }}</td>
+                                    <td>
+                                        {% if year.is_active %}
+                                            <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-check-circle"></i> Đang kích hoạt</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Đã đóng</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not year.is_active %}
+                                            <form action="/set_active_year/{{ year.id }}" method="POST" class="d-inline" onsubmit="return confirm('Toàn bộ hệ thống sẽ chuyển sang dữ liệu của năm học này. Các giao diện sẽ tải lại. Bạn có chắc chắn?');">
+                                                <button type="submit" class="btn btn-sm btn-success fw-bold" title="Kích hoạt Năm học này"><i class="fa-solid fa-power-off"></i> Kích hoạt</button>
+                                            </form>
+                                            <form action="/delete_school_year/{{ year.id }}" method="POST" class="d-inline" onsubmit="return confirm('CẢNH BÁO: Xóa năm học sẽ làm mồ côi toàn bộ dữ liệu thuộc về năm học này! Bạn có chắc chắn?');">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Xóa Năm học"><i class="fa-solid fa-trash"></i></button>
+                                            </form>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-success disabled fw-bold">Năm hiện tại</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-5 text-danger fw-bold">
+                                        <i class="fa-solid fa-triangle-exclamation fs-3 mb-2 d-block"></i>
+                                        Hệ thống chưa có Năm học nào!<br>Vui lòng tạo Năm học mới bên cột trái để bắt đầu sử dụng phần mềm.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL XÁC NHẬN MẬT KHẨU QUẢN TRỊ ĐỂ RESET -->
+    <div class="modal fade" id="resetSystemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header bg-danger text-white pb-3" style="padding: 20px 24px;">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> Xác thực Mật khẩu Quản trị</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/reset_system_data" method="POST">
+                    <div class="modal-body p-4 bg-light">
+                        <div class="alert alert-warning border-0 shadow-sm mb-3" style="font-size: 13px;">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i> <strong>CẢNH BÁO NGUY HIỂM:</strong> Thao tác này sẽ xóa vĩnh viễn toàn bộ lịch sử thi đua, lịch trực và sổ đen. Vui lòng nhập mật khẩu quản trị để xác nhận.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark small">Mật khẩu quản trị của bạn:</label>
+                            <input type="password" class="form-control form-control-lg border-danger fw-bold text-danger" name="admin_password" placeholder="••••••••" required style="border-radius: 10px;">
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-white px-4 py-3" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                        <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm">
+                            <i class="fa-solid fa-skull-crossbones me-1"></i> Xác nhận Xóa & Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

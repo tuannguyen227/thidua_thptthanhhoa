@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Xem trước Báo cáo Thi đua - A4 Dọc</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #eef2f5; font-family: 'Times New Roman', Times, serif; padding: 20px; }
+        .preview-container { max-width: 850px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 8px; }
+        .table th, .table td { vertical-align: middle; text-align: center; font-size: 11pt; }
+        .group-title { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; text-align: left !important; padding-left: 15px !important; }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <!-- Thanh công cụ điều hướng -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom no-print">
+            <a href="/templates" class="btn btn-secondary fw-bold"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại chỉnh sửa</a>
+            
+            <form action="/export_templates_excel" method="POST">
+                <input type="hidden" name="report_type" value="{{ report_type }}">
+                <input type="hidden" name="time_val" value="{{ time_val }}">
+                <input type="hidden" name="year_name" value="{{ year_name }}">
+                <input type="hidden" name="group_val" value="{{ group_val }}">
+                <button type="submit" class="btn btn-success fw-bold px-4 py-2 shadow">
+                    <i class="fa-solid fa-file-excel me-1"></i> Xác nhận Tải File Excel (Chuẩn A4 Dọc)
+                </button>
+            </form>
+        </div>
+
+        <!-- Khung mô phỏng văn bản hành chính -->
+        <div class="text-center mb-4">
+            <div class="row mb-3">
+                <div class="col-6 text-start fw-bold" style="font-size: 11pt;">
+                    BCH ĐOÀN XÃ THIỆN HƯNG<br>
+                    <span>BCH TRƯỜNG THPT THANH HÒA</span>
+                </div>
+                <div class="col-6 text-center fw-bold" style="font-size: 11pt;">
+                    ĐOÀN TNCS HỒ CHÍ MINH<br>
+                    <span>-----***-----</span>
+                </div>
+            </div>
+            
+            <h4 class="fw-bold text-uppercase mt-4 text-danger">BẢNG {{ report_type.upper() }} - {{ time_val.upper() }}</h4>
+            <p class="fst-italic text-muted m-0">(Thời gian: Từ ngày {{ start_str }} đến ngày {{ end_str }})</p>
+        </div>
+
+        <!-- Bảng hiển thị dữ liệu (Đã bỏ cột Ghi chú VP) -->
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 6%;">STT</th>
+                    <th>Chi đoàn</th>
+                    <th style="width: 8%;">Sĩ số</th>
+                    <th style="width: 12%;">Điểm Trừ VP</th>
+                    <th style="width: 12%;">Số Điểm Tốt</th>
+                    <th style="width: 12%;">Xếp hạng</th>
+                    <th style="width: 12%;">Tổng Điểm</th>
+                    <th style="width: 25%;">GVCN</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set current_group = namespace(val='') %}
+                {% for row in data_list %}
+                    {% if row.Nhóm != current_group.val %}
+                        {% set current_group.val = row.Nhóm %}
+                        <tr>
+                            <td colspan="8" class="group-title">
+                                <i class="fa-solid fa-folder-open me-2"></i> PHÂN BẢNG THI ĐUA: {{ current_group.val | upper }}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <td class="fw-bold text-muted">{{ loop.index }}</td>
+                        <td class="fw-bold text-primary">{{ row['Chi đoàn'] }}</td>
+                        <td>{{ row['Sĩ số'] }}</td>
+                        <td class="text-danger fw-bold">{{ row['Điểm Trừ VP'] }}</td>
+                        <td class="text-success fw-bold">{{ row['Số Điểm Tốt'] }}</td>
+                        <td><span class="badge bg-secondary">Hạng {{ row['Hạng'] if 'Hạng' in row else '-' }}</span></td>
+                        <td class="fw-bold text-dark bg-light">{{ row['Tổng Điểm'] }}</td>
+                        <td class="text-start small">{{ row['Giáo viên chủ nhiệm'] }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-muted fst-italic py-4">Không có dữ liệu trích xuất trong khoảng thời gian này.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

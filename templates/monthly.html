@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thi đua Tháng - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; overflow: hidden; /* Khóa cuộn toàn trang */ }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; z-index: 1000; overflow-y: auto; }
+        .sidebar h4 { font-size: 18px; font-weight: bold; text-align: center; padding-bottom: 15px; border-bottom: 1px solid #0054a6; }
+        .sidebar .nav-link { color: #cce6ff; font-weight: 600; padding: 12px 20px; font-size: 14px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #002244; color: white; border-left: 4px solid #4da6ff; }
+        
+        /* Cố định vùng chứa chính vừa khít màn hình */
+        .main-content { margin-left: 260px; padding: 20px 25px; height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        
+        .header-bar { background-color: white; padding: 12px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 12px; flex-shrink: 0; }
+        
+        /* Khối card nhóm thi đua co giãn linh hoạt, tự chia không gian hiển thị đủ các nhóm */
+        .custom-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: none; display: flex; flex-direction: column; margin-bottom: 15px; flex: 1; min-height: 180px; overflow: hidden; }
+        
+        /* Thiết kế bảng cuộn độc lập cho từng nhóm */
+        .table-container-scroll {
+            flex: 1;
+            overflow-y: auto;
+            background: white;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+        
+        .table-hover tbody tr:hover { background-color: #f8faff; transition: background-color 0.2s; }
+        
+        /* Cố định tiêu đề bảng dính ở trên khi cuộn */
+        .table thead th { 
+            position: sticky; 
+            top: 0; 
+            background-color: #FCE4D6 !important; 
+            font-size: 14px; 
+            color: #495057; 
+            vertical-align: middle; 
+            z-index: 10; 
+            border-bottom: 2px solid #dee2e6;
+        }
+        .table td { vertical-align: middle; }
+        
+        /* Hiệu ứng huy chương chuẩn xác theo yêu cầu */
+        .medal-gold { background-color: #ffc107; color: #856404; font-size: 0.9rem; padding: 4px 10px; box-shadow: 0 2px 4px rgba(255, 193, 7, 0.4); }
+        .medal-silver { background-color: #e0e0e0; color: #5c5c5c; font-size: 0.9rem; padding: 4px 10px; box-shadow: 0 2px 4px rgba(224, 224, 224, 0.4); }
+        .medal-bronze { background-color: #cd7f32; color: #fff; font-size: 0.9rem; padding: 4px 10px; box-shadow: 0 2px 4px rgba(205, 127, 50, 0.4); }
+        
+        /* Nút chọn Tuần hiện đại */
+        .week-selector .btn-check:checked + .btn-outline-primary {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+            box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+        }
+        .week-selector .btn-outline-primary {
+            border-color: #aecdfc;
+            color: #0d6efd;
+            border-radius: 8px;
+            padding: 6px 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    {% include 'sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="flex-shrink-0">
+            <div class="header-bar d-flex justify-content-between align-items-center mb-3">
+                <h5 class="m-0 fw-bold text-secondary">
+                    <i class="fa-solid fa-award text-warning me-2"></i> Trang chủ / Thi đua / Báo cáo Tháng
+                </h5>
+                <div class="fw-bold text-primary bg-light px-3 py-1 rounded border border-primary-subtle small">
+                    <i class="fa-solid fa-calendar-check"></i> Lọc dữ liệu
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show mb-3 py-2 shadow-sm">
+                    <i class="fa-solid {% if category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <div class="card custom-card border-primary shadow-sm mb-3" style="border-top: 4px solid #0d6efd; flex: unset;">
+                <div class="card-header bg-white pt-2 pb-2 border-0">
+                    <h6 class="fw-bold text-primary m-0"><i class="fa-solid fa-sliders"></i> Bảng cấu hình tính điểm</h6>
+                </div>
+                <div class="card-body bg-light py-2">
+                    <form method="POST" action="/monthly" id="monthlyForm" class="row g-2 align-items-center">
+						<div class="col-md-3">
+							<label class="form-label fw-bold text-dark small text-uppercase mb-1">Tên Tháng Đánh Giá</label>
+							<div class="input-group input-group-sm shadow-sm">
+								<span class="input-group-text bg-white text-primary border-end-0"><i class="fa-regular fa-calendar"></i></span>
+								<select class="form-select form-select-sm fw-bold text-primary border-start-0 ps-0" name="month" required onchange="window.location.href='/monthly?month=' + encodeURIComponent(this.value);">
+									{% for m in available_months %}
+										<option value="{{ m }}" {% if selected_month == m %}selected{% endif %}>{{ m }}</option>
+									{% endfor %}
+									<option value="Thi đua chào mừng 20/11" {% if selected_month == 'Thi đua chào mừng 20/11' %}selected{% endif %}>Thi đua chào mừng 20/11</option>
+									<option value="Thi đua chào mừng 26/3" {% if selected_month == 'Thi đua chào mừng 26/3' %}selected{% endif %}>Thi đua chào mừng 26/3</option>
+								</select>
+							</div>
+						</div>
+                        
+					<div class="col-md-7">
+						<label class="form-label fw-bold text-dark small text-uppercase mb-1 w-100 d-flex justify-content-between align-items-end">
+							<span>☑️ Tích chọn các tuần để gộp điểm</span>
+                            {% if selected_weeks|length > 0 %}
+                            <a href="javascript:void(0);" onclick="unlockWeeks(this)" class="text-danger text-decoration-none fw-bold" style="font-size: 11px;"><i class="fa-solid fa-unlock"></i> MỞ KHÓA ĐỂ SỬA</a>
+                            {% endif %}
+						</label>
+						<div class="week-selector d-flex flex-wrap gap-2 p-2 bg-white rounded shadow-sm border" style="max-height: 50px; overflow-y: auto;">
+							{% for w in available_weeks %}
+								{% set is_checked = (w in selected_weeks) %}
+                                {% set is_used_others = (w in used_by_other_months and not is_admin and selected_month not in ["Thi đua chào mừng 20/11", "Thi đua chào mừng 26/3"]) %}
+								{% set is_locked_by_current = (selected_weeks|length > 0 and not is_checked) %}
+                                {% set is_disabled = is_used_others or is_locked_by_current %}
+								
+								<input type="checkbox" class="btn-check" id="week_{{ loop.index }}" name="weeks" value="{{ w }}" 
+									{% if is_checked %}checked{% endif %} 
+									{% if is_disabled %}disabled{% endif %}
+                                    {% if is_used_others %}data-used-others="true"{% endif %}>
+								
+								<label class="btn btn-outline-primary btn-sm fw-bold shadow-none {% if is_disabled %}opacity-50{% endif %}" for="week_{{ loop.index }}">
+									<i class="fa-solid fa-check {% if not is_checked %}d-none{% endif %}"></i> {{ w }} 
+                                    {% if is_used_others %}
+                                        (Đã dùng)
+                                    {% elif is_locked_by_current %}
+                                        <i class="fa-solid fa-lock ms-1 text-secondary" style="font-size: 10px;"></i>
+                                    {% endif %}
+								</label>
+							{% else %}
+								<div class="text-danger fst-italic w-100 small">
+									<i class="fa-solid fa-circle-info"></i> Hệ thống chưa có dữ liệu điểm thi đua của tuần nào trong năm học này.
+								</div>
+							{% endfor %}
+						</div>
+					</div>
+
+                        <div class="col-md-2 text-end">
+                            <label class="form-label d-block mb-1">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-sm fw-bold w-100 shadow-sm py-2">
+                                <i class="fa-solid fa-calculator me-1"></i> Tính Tổng Điểm
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% if monthly_data %}
+            {% if monthly_data is mapping %}
+                {% set iter_data = monthly_data.items()|sort %}
+            {% else %}
+                {% set grouped_dict = {} %}
+                {% for item in monthly_data %}
+                    {% set g = item.group | default('Nhóm 1') %}
+                    {% if g not in grouped_dict %}{% set _ = grouped_dict.update({g: []}) %}{% endif %}
+                    {% set _ = grouped_dict[g].append(item) %}
+                {% endfor %}
+                {% set iter_data = grouped_dict.items()|sort %}
+            {% endif %}
+
+            {% for grp_name, group_items in iter_data %}
+            <div class="card custom-card shadow-sm border-0">
+                <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center flex-shrink-0">
+                    <h6 class="m-0 fw-bold text-danger text-uppercase" style="letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-layer-group"></i> BẢNG XẾP HẠNG THI ĐUA - {{ selected_month }} - {{ grp_name }}
+                    </h6>
+                    <div>
+                        <!-- NÚT GỌI MODAL XEM TRƯỚC -->
+                        <button type="button" class="btn btn-sm btn-info text-white fw-bold px-3 py-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#previewModal">
+                            <i class="fa-solid fa-eye me-1"></i> Xem trước & Xuất Excel
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-container-scroll">
+                    <table class="table table-hover table-bordered m-0 text-center align-middle">
+                        <thead class="text-uppercase">
+                            <tr>
+                                <th style="width: 12%;">Xếp hạng</th>
+                                <th style="width: 25%;">Tên Chi đoàn</th>
+                                <th style="width: 33%;">Giáo viên Chủ nhiệm</th>
+                                <th style="width: 15%;">Số tuần gộp</th>
+                                <th style="width: 15%;">Tổng Điểm</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in group_items %}
+                            <tr>
+                                <td>
+                                    {% if item.rank == 1 %}
+                                        <span class="badge rounded-pill medal-gold"><i class="fa-solid fa-trophy me-1"></i> TOP 1</span>
+                                    {% elif item.rank == 2 %}
+                                        <span class="badge rounded-pill medal-silver"><i class="fa-solid fa-medal me-1"></i> TOP 2</span>
+                                    {% elif item.rank == 3 %}
+                                        <span class="badge rounded-pill medal-bronze"><i class="fa-solid fa-award me-1"></i> TOP 3</span>
+                                    {% else %}
+                                        <span class="fw-bold text-secondary fs-6">{{ item.rank }}</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="fw-bold text-primary fs-6">{{ item.branch_name }}</td>
+                                
+                                <td class="text-start ps-4 fw-medium text-dark">{{ item.gvcn if item.gvcn else '<i class="text-muted small">Chưa cập nhật</i>'|safe }}</td>
+                                
+                                <td>
+                                    <span class="badge bg-light text-secondary border px-2">
+                                        <i class="fa-regular fa-clock"></i> {{ item.weeks_count }} tuần
+                                    </span>
+                                </td>
+                                
+                                <td class="fw-bold text-danger fs-5" style="background-color: #fff9fa;">
+                                    {{ item.total_score }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- MODAL XEM TRƯỚC BÁO CÁO VỚI HIỆU ỨNG TRANG TRÍ HUY CHƯƠNG -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+              <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-magnifying-glass me-2"></i> Xem trước Báo Cáo - Bản in Excel</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light p-4">
+              
+              <!-- Khung giấy A4 giả lập -->
+              <div class="bg-white p-5 border rounded shadow-sm mx-auto" style="font-family: 'Times New Roman', serif; max-width: 1050px; color: black;">
+                  
+                  <!-- Tiêu đề Header -->
+                  <div class="row text-center fw-bold mb-4" style="font-size: 15px;">
+                      <div class="col-5">
+                          <div>ĐOÀN TRƯỜNG THPT THANH HÒA</div>
+                      </div>
+                      <div class="col-2"></div>
+                      <div class="col-5">
+                          <div>ĐOÀN TNCS HỒ CHÍ MINH</div>
+                      </div>
+                  </div>
+  
+                  <div class="text-center mb-4">
+                      <h4 class="fw-bold mb-1">ĐIỂM THI ĐUA {{ selected_month|upper }}</h4>
+                      <div class="fst-italic fs-6 mb-1">(Tổng hợp điểm từ các tuần: {{ selected_weeks|join(', ') }})</div>
+                      <div class="fw-bold fs-6 mt-2">NĂM HỌC: {{ active_year.name if active_year else 'Chưa thiết lập' }}</div>
+                  </div>
+  
+                  <!-- Kết xuất Dữ liệu điểm -->
+                  {% if monthly_data %}
+                      {% if monthly_data is mapping %}
+                          {% set iter_data_modal = monthly_data.items()|sort %}
+                      {% else %}
+                          {% set grouped_dict_modal = {} %}
+                          {% for item in monthly_data %}
+                              {% set g = item.group | default('Nhóm 1') %}
+                              {% if g not in grouped_dict_modal %}{% set _ = grouped_dict_modal.update({g: []}) %}{% endif %}
+                              {% set _ = grouped_dict_modal[g].append(item) %}
+                          {% endfor %}
+                          {% set iter_data_modal = grouped_dict_modal.items()|sort %}
+                      {% endif %}
+                      
+                      {% for grp_name, group_items in iter_data_modal %}
+                          <div class="fw-bold fst-italic mb-2 mt-4 fs-5">{{ grp_name }}</div>
+                          <div class="table-responsive mb-4">
+                              <table class="table table-bordered table-sm text-center align-middle border-dark" style="border-color: black !important;">
+                                  <thead class="fw-bold" style="background-color: #e9ecef;">
+                                      <tr>
+                                          <th style="width: 5%;">STT</th>
+                                          <th style="width: 18%;">LỚP</th>
+                                          <!-- Cột tuần -->
+                                          {% for w in selected_weeks %}
+                                              <th>{{ w|replace('Tuần ', 'T.') }}</th>
+                                          {% endfor %}
+                                          <th style="width: 10%;">ĐIỂM</th>
+                                          <th style="width: 15%;">HẠNG<br>HIỆN TẠI</th>
+                                          <th style="width: 20%;">GVCN</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {% for item in group_items %}
+                                      <tr>
+                                          <td>{{ loop.index }}</td>
+                                          <td class="text-start ps-2 fw-bold">{{ item.branch_name }}</td>
+                                          
+                                          {% for w in selected_weeks %}
+                                              <td>
+                                                  {% if item.week_scores and w in item.week_scores %}
+                                                      {{ item.week_scores[w] | round(1) if item.week_scores[w] % 1 != 0 else item.week_scores[w] | int }}
+                                                  {% else %}
+                                                      0
+                                                  {% endif %}
+                                              </td>
+                                          {% endfor %}
+  
+                                          <td class="fw-bold text-danger">
+                                              {{ item.total_score | round(1) if item.total_score % 1 != 0 else item.total_score | int }}
+                                          </td>
+                                          
+                                          <!-- CỘT HẠNG TRANG TRÍ HUY CHƯƠNG KHI XEM TRƯỚC -->
+                                          <td>
+                                              {% if item.rank == 1 %}
+                                                  <span class="badge rounded-pill medal-gold"><i class="fa-solid fa-trophy me-1"></i> TOP 1</span>
+                                              {% elif item.rank == 2 %}
+                                                  <span class="badge rounded-pill medal-silver"><i class="fa-solid fa-medal me-1"></i> TOP 2</span>
+                                              {% elif item.rank == 3 %}
+                                                  <span class="badge rounded-pill medal-bronze"><i class="fa-solid fa-award me-1"></i> TOP 3</span>
+                                              {% else %}
+                                                  <span class="fw-bold fs-6">{{ item.rank }}</span>
+                                              {% endif %}
+                                          </td>
+
+                                          <td class="text-start ps-2">{{ item.gvcn }}</td>
+                                      </tr>
+                                      {% endfor %}
+                                  </tbody>
+                              </table>
+                          </div>
+                      {% endfor %}
+                  {% endif %}
+  
+                  <div class="row mt-5 mb-3">
+                      <div class="col-7"></div>
+                      <div class="col-5 text-center fw-bold fs-6">
+                          TM. BCH ĐOÀN TRƯỜNG
+                      </div>
+                  </div>
+  
+              </div>
+            </div>
+            <div class="modal-footer bg-white py-2">
+              <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
+              
+              <!-- Nút tải chính thức truyền dữ liệu ngầm lên /export_monthly_excel -->
+              <form method="POST" action="/export_monthly_excel" class="m-0">
+                  <input type="hidden" name="month" value="{{ selected_month }}">
+                  {% for w in selected_weeks %}
+                      <input type="hidden" name="weeks" value="{{ w }}">
+                  {% endfor %}
+                  <button type="submit" class="btn btn-success fw-bold" onclick="bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();">
+                      <i class="fa-solid fa-file-excel me-1"></i> Tải Xuống File Excel
+                  </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function unlockWeeks(btn) {
+            document.querySelectorAll('.week-selector .btn-check').forEach(cb => {
+                if (!cb.hasAttribute('data-used-others')) {
+                    cb.disabled = false;
+                    cb.nextElementSibling.classList.remove('opacity-50');
+                    const lockIcon = cb.nextElementSibling.querySelector('.fa-lock');
+                    if(lockIcon) lockIcon.remove();
+                }
+            });
+            btn.style.display = 'none'; 
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const container = document.querySelector('.week-selector');
+            if (container && !container.querySelector('.text-danger')) {
+                let items = [];
+                let inputs = container.querySelectorAll('input.btn-check');
+                let labels = container.querySelectorAll('label.btn');
+
+                for(let i = 0; i < inputs.length; i++) {
+                    items.push({
+                        input: inputs[i],
+                        label: labels[i],
+                        num: parseInt(labels[i].textContent.replace(/[^0-9]/g, '')) || 0
+                    });
+                }
+
+                items.sort((a, b) => a.num - b.num);
+
+                items.forEach(item => {
+                    container.appendChild(item.input);
+                    container.appendChild(item.label);
+                });
+            }
+
+            document.querySelectorAll('.week-selector .btn-check').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const icon = this.nextElementSibling.querySelector('.fa-check');
+                    if(icon) {
+                        if (this.checked) {
+                            icon.classList.remove('d-none');
+                        } else {
+                            icon.classList.add('d-none');
+                        }
+                    }
+                });
+                if(checkbox.checked) {
+                    const icon = checkbox.nextElementSibling.querySelector('.fa-check');
+                    if(icon) icon.classList.remove('d-none');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

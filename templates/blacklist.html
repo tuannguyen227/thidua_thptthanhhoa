@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu Sổ Đen - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #004080; color: white; padding-top: 20px; z-index: 1000; }
+        .main-content { margin-left: 260px; padding: 25px; }
+        .custom-card { background-color: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: none; overflow: hidden; }
+        
+        /* --- KHUNG CUỘN VÀ KHÓA TIÊU ĐỀ TRÊN WEB --- */
+        .table-responsive {
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+        }
+        .table thead th { 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+            background-color: #343a40 !important; 
+            color: white; 
+            font-size: 13px; 
+            text-transform: uppercase; 
+            vertical-align: middle; 
+            box-shadow: 0 2px 2px -1px rgba(0,0,0,0.4); 
+        }
+        .table td { vertical-align: middle; font-size: 15px; }
+        
+        /* =========================================
+           CSS DÀNH RIÊNG CHO CHẾ ĐỘ IN / XUẤT PDF 
+           ========================================= */
+        @media print {
+            @page { size: A4 portrait; margin: 15mm 20mm; }
+            body { background-color: #fff; font-family: "Times New Roman", Times, serif !important; color: #000 !important; }
+            .sidebar, .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; padding: 0 !important; width: 100% !important; }
+            .custom-card { box-shadow: none !important; border: none !important; padding: 0 !important; }
+
+            .print-header { display: block !important; margin-bottom: 25px; }
+            .print-header-table { width: 100%; border: none; margin-bottom: 20px; }
+            .print-header-table td { border: none !important; padding: 0; vertical-align: top; text-align: center; color: #000 !important; }
+            .print-title { font-size: 16pt; font-weight: bold; text-align: center; margin-top: 15px; margin-bottom: 5px; color: #000 !important; text-transform: uppercase; }
+            .print-subtitle { font-size: 13pt; font-style: italic; text-align: center; margin-bottom: 20px; color: #000 !important; }
+
+            .table-responsive { max-height: none !important; overflow: visible !important; }
+            .table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000 !important; margin-bottom: 20px !important; }
+            .table th, .table td { border: 1px solid #000 !important; padding: 8px !important; color: #000 !important; font-size: 13pt !important; }
+            
+            .table thead th { 
+                position: static !important;
+                background-color: #dbeafe !important; 
+                color: #000 !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                font-weight: bold; 
+                text-align: center; 
+            }
+            
+            .badge { border: none !important; color: #000 !important; background: transparent !important; font-size: 13pt !important; padding: 0 !important; font-weight: normal !important; }
+            .text-muted, .text-danger, .text-primary, .text-dark, .text-success { color: #000 !important; font-weight: normal !important; }
+            
+            .print-footer { display: block !important; margin-top: 30px; width: 100%; page-break-inside: avoid; }
+            .print-footer-table { width: 100%; border: none; }
+            .print-footer-table td { border: none !important; text-align: center; font-size: 13pt; color: #000 !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR (Sẽ ẩn khi in) -->
+    <div class="no-print">
+        {% include 'sidebar.html' %}
+    </div>
+
+    <div class="main-content">
+        <!-- =========================================
+             TIÊU ĐỀ KHI IN BÁO CÁO (Chỉ hiện khi ấn Ctrl+P)
+             ========================================= -->
+        <div class="print-header d-none">
+            <table class="print-header-table">
+                <tr>
+                    <td style="width: 40%; font-weight: bold; font-size: 13pt; line-height: 1.2;">
+                        ĐOÀN TNCS HỒ CHÍ MINH<br>
+                        BCH TRƯỜNG THPT THANH HÒA
+                        <hr style="width: 40%; margin: 5px auto; border-top: 1px solid black; opacity: 1;">
+                    </td>
+                    <td style="width: 60%; font-weight: bold; font-size: 13pt; line-height: 1.2;">
+                        CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br>
+                        Độc lập - Tự do - Hạnh phúc
+                        <hr style="width: 30%; margin: 5px auto; border-top: 1px solid black; opacity: 1;">
+                    </td>
+                </tr>
+            </table>
+            
+            <div class="print-title">DANH SÁCH HỌC SINH VI PHẠM NỀ NẾP (SỔ ĐEN)</div>
+            <div class="print-subtitle">Trích xuất tự động từ Hệ thống Quản lý Thi đua Điện tử</div>
+        </div>
+
+        <!-- =========================================
+             GIAO DIỆN WEB HIỂN THỊ TRÊN MÁY TÍNH
+             ========================================= -->
+        <div class="custom-card p-4 mb-4 no-print">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                <h4 class="m-0 fw-bold text-danger"><i class="fa-solid fa-book-skull me-2"></i> Tra Cứu Sổ Đen Toàn Trường</h4>
+                <button class="btn btn-outline-dark fw-bold" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> In / Xuất PDF (Chuẩn Form)</button>
+            </div>
+
+            <!-- BỘ LỌC SỔ ĐEN NÂNG CAO (KẾT HỢP ĐẦY ĐỦ: LỚP, LỖI, TÊN HS, TUẦN, THÁNG, HỌC KỲ, NĂM HỌC) -->
+            <form method="GET" action="/blacklist" class="row g-3 bg-light p-3 rounded-3 border shadow-sm" id="blacklistFilterForm">
+                <!-- 1. Lọc theo Chi đoàn (Lớp) -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted mb-1"><i class="fa-solid fa-school me-1"></i>Lọc theo Chi đoàn</label>
+                    <select class="form-select fw-bold" name="search_branch">
+                        <option value="">-- Tất cả các lớp --</option>
+                        {% for b in branches %}
+                        <option value="{{ b.id }}" {% if search_branch == b.id|string %}selected{% endif %}>Lớp {{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- 2. Lọc theo Lỗi vi phạm -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Lọc theo Lỗi vi phạm</label>
+                    <select class="form-select fw-bold" name="search_violation">
+                        <option value="">-- Tất cả các lỗi --</option>
+                        {% for c in categories %}
+                        <option value="{{ c.id }}" {% if search_violation == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 3. Tìm theo Tên Học Sinh -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted mb-1"><i class="fa-solid fa-user me-1"></i>Tên học sinh</label>
+                    <input type="text" class="form-control fw-bold" name="search_name" value="{{ search_name }}" placeholder="Gõ tên cần tìm...">
+                </div>
+
+                <!-- 4. Thống kê theo thời gian (Tuần, Tháng, Học Kỳ, Năm Học) -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted mb-1"><i class="fa-solid fa-filter me-1"></i>Thống kê theo</label>
+                    <select class="form-select fw-bold text-primary" name="time_mode" id="timeModeSelect" onchange="toggleTimeValueDropdown()">
+                        <option value="all" {% if time_mode == 'all' or not time_mode %}selected{% endif %}>📅 Toàn bộ thời gian</option>
+                        <option value="year" {% if time_mode == 'year' %}selected{% endif %}>🏫 Cả năm học</option>
+                        <option value="week" {% if time_mode == 'week' %}selected{% endif %}>📌 Theo Tuần</option>
+                        <option value="month" {% if time_mode == 'month' %}selected{% endif %}>📊 Theo Tháng</option>
+                        <option value="semester" {% if time_mode == 'semester' %}selected{% endif %}>🎓 Theo Học Kỳ</option>
+                    </select>
+                </div>
+
+                <!-- Mốc thời gian cụ thể động (Hiện ra khi chọn Tuần, Tháng hoặc Học Kỳ) -->
+                <div class="col-md-9" id="timeValueContainer" style="display: {% if time_mode in ['week', 'month', 'semester'] %}block{% else %}none{% endif %};">
+                    <label class="form-label fw-bold small text-danger mb-1">Chọn mốc thời gian cụ thể:</label>
+                    
+                    <select class="form-select fw-bold time-val-input" name="time_value" id="weekValueInput" style="display: {% if time_mode == 'week' %}block{% else %}none{% endif %};" {% if time_mode != 'week' %}disabled{% endif %}>
+                        <option value="">-- Chọn tuần --</option>
+                        {% for w in available_weeks %}
+                        <option value="{{ w }}" {% if time_mode == 'week' and time_value == w %}selected{% endif %}>{{ w }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select class="form-select fw-bold time-val-input" name="time_value" id="monthValueInput" style="display: {% if time_mode == 'month' %}block{% else %}none{% endif %};" {% if time_mode != 'month' %}disabled{% endif %}>
+                        <option value="">-- Chọn tháng --</option>
+                        {% for m in available_months %}
+                        <option value="{{ m }}" {% if time_mode == 'month' and time_value == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select class="form-select fw-bold time-val-input" name="time_value" id="semesterValueInput" style="display: {% if time_mode == 'semester' %}block{% else %}none{% endif %};" {% if time_mode != 'semester' %}disabled{% endif %}>
+                        <option value="">-- Chọn học kỳ --</option>
+                        {% for sem in available_semesters %}
+                        <option value="{{ sem }}" {% if time_mode == 'semester' and time_value == sem %}selected{% endif %}>{{ sem }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Cụm Nút Hành Động -->
+                <div class="col-md-3 d-flex gap-2 align-items-end {% if time_mode == 'all' or time_mode == 'year' or not time_mode %}ms-auto{% endif %}">
+                    <button type="submit" class="btn btn-primary fw-bold w-50 shadow-sm">
+                        <i class="fa-solid fa-filter me-1"></i> Lọc
+                    </button>
+                    <button type="button" class="btn btn-success fw-bold w-50 shadow-sm" onclick="exportBlacklistExcel()">
+                        <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- BẢNG DỮ LIỆU SỔ ĐEN -->
+        <div class="custom-card">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered m-0 text-center">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">STT</th>
+                            <th style="width: 15%;">Chi đoàn</th>
+                            <th style="width: 25%; text-align: left; padding-left: 15px;">Họ và tên Học sinh</th>
+                            <th style="width: 30%;">Nội dung Vi phạm</th>
+                            <th style="width: 15%;">Thời gian</th>
+                            <th style="width: 10%;">Điểm trừ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in violations %}
+                        <tr>
+                            <td class="text-muted fw-bold">{{ loop.index }}</td>
+                            <td><span class="badge bg-primary fs-6">{{ v.branch_name }}</span></td>
+                            <td class="text-start ps-3 fw-bold text-danger">{{ v.student_name }}</td>
+                            <td class="fw-bold text-dark">{{ v.violation_name }} (x{{ v.quantity }})</td>
+                            <td><span class="badge bg-secondary">{{ v.week }}</span></td>
+                            <td class="text-danger fw-bold">-{{ v.penalty }}đ</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted fst-italic">
+                                <i class="fa-solid fa-face-smile-beam fs-1 mb-3 d-block text-success"></i>
+                                Tuyệt vời! Chưa có (hoặc không tìm thấy) học sinh nào vi phạm.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- =========================================
+             CHỮ KÝ KHI IN (Chỉ hiện khi ấn Ctrl+P)
+             ========================================= -->
+        <div class="print-footer d-none">
+            <table class="print-footer-table">
+                <tr>
+                    <td style="width: 50%;"></td>
+                    <td style="width: 50%;">
+                        <i>Thanh Hòa, ngày ...... tháng ...... năm ......</i><br>
+                        <b>TM. BAN CHẤP HÀNH ĐOÀN TRƯỜNG</b><br>
+                        <br><br><br><br><br>
+                        <b>Bí thư Đoàn trường</b>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- Khởi tạo Scripts Bootstrap và hàm xử lý bộ lọc, xuất Excel động -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleTimeValueDropdown() {
+            var mode = document.getElementById('timeModeSelect').value;
+            var container = document.getElementById('timeValueContainer');
+            var weekInput = document.getElementById('weekValueInput');
+            var monthInput = document.getElementById('monthValueInput');
+            var semesterInput = document.getElementById('semesterValueInput');
+            
+            weekInput.disabled = true; weekInput.style.display = 'none';
+            monthInput.disabled = true; monthInput.style.display = 'none';
+            semesterInput.disabled = true; semesterInput.style.display = 'none';
+
+            if (mode === 'all' || mode === 'year') {
+                container.style.display = 'none';
+            } else {
+                container.style.display = 'block';
+                if (mode === 'week') {
+                    weekInput.disabled = false; weekInput.style.display = 'block';
+                } else if (mode === 'month') {
+                    monthInput.disabled = false; monthInput.style.display = 'block';
+                } else if (mode === 'semester') {
+                    semesterInput.disabled = false; semesterInput.style.display = 'block';
+                }
+            }
+        }
+
+        function exportBlacklistExcel() {
+            var branch = document.querySelector('select[name="search_branch"]').value;
+            var violation = document.querySelector('select[name="search_violation"]').value;
+            var name = document.querySelector('input[name="search_name"]').value;
+            var timeMode = document.getElementById('timeModeSelect').value;
+            
+            var timeVal = "";
+            if (timeMode === 'week') {
+                timeVal = document.getElementById('weekValueInput').value;
+            } else if (timeMode === 'month') {
+                timeVal = document.getElementById('monthValueInput').value;
+            } else if (timeMode === 'semester') {
+                timeVal = document.getElementById('semesterValueInput').value;
+            }
+            
+            var exportUrl = '/export_global_blacklist?search_branch=' + encodeURIComponent(branch) + 
+                            '&search_violation=' + encodeURIComponent(violation) + 
+                            '&search_name=' + encodeURIComponent(name) +
+                            '&time_mode=' + encodeURIComponent(timeMode) +
+                            '&time_value=' + encodeURIComponent(timeVal);
+                            
+            window.location.href = exportUrl;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuất PDF Toàn Trường - {{ selected_month }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; background-color: #525659; }
+        #pdf-content { background: white; margin: 0 auto; width: 100%; max-width: 900px;}
+        .print-container { padding: 40px; box-sizing: border-box; }
+        .section-title { font-weight: bold; color: #004080; border-bottom: 2px solid #004080; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px; font-size: 18px; text-transform: uppercase;}
+        .highlight-box { background-color: #f8f9fa; border-left: 4px solid #dc3545; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+        .highlight-box.good { border-left-color: #198754; background-color: #f8fff9; }
+        
+        /* Lệnh ngắt trang bắt buộc khi xuất PDF (Mỗi lớp 1 trang) */
+        .page-break { page-break-after: always; }
+        
+        /* CSS thanh loading */
+        #loadingOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay">
+        <div class="spinner-border text-warning" style="width: 4rem; height: 4rem;" role="status"></div>
+        <h3 class="mt-4 fw-bold">Đang kết xuất PDF {{ all_data|length }} Chi đoàn...</h3>
+        <p class="text-info">Vui lòng không đóng cửa sổ này. Trình duyệt sẽ tự động tải file xuống khi hoàn tất!</p>
+    </div>
+
+    <!-- Bao bọc tất cả dữ liệu vào 1 khối để chụp PDF -->
+    <div id="pdf-content">
+        {% for data in all_data %}
+        <div class="print-container">
+            <div class="text-center mb-4">
+                <h4 class="fw-bold m-0">ĐOÀN TRƯỜNG THPT THANH HÒA</h4>
+                <h2 class="fw-bold mt-3 text-uppercase">PHIẾU PHÂN TÍCH TÌNH HÌNH LỚP HỌC</h2>
+                <h5 class="fst-italic text-muted">Kỳ đánh giá: {{ data.month_name }} (Gộp từ: {{ data.weeks_used }})</h5>
+            </div>
+
+            <div class="row mb-4 fs-5">
+                <div class="col-6"><strong>Chi đoàn:</strong> <span class="text-danger fw-bold">{{ data.branch.name }}</span></div>
+                <div class="col-6"><strong>Giáo viên chủ nhiệm:</strong> {{ data.branch.gvcn or "...................................." }}</div>
+                <div class="col-6 mt-2"><strong>Xếp hạng thi đua tháng:</strong> Thứ {{ data.rank }} ({{ data.total_score }} điểm)</div>
+                <div class="col-6 mt-2"><strong>Sĩ số:</strong> {{ data.branch.si_so }} học sinh</div>
+            </div>
+
+            <div class="section-title">1. Đánh giá về Nền nếp, Kỷ luật và Ý thức chấp hành</div>
+            <div class="highlight-box">
+                <h6 class="fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Tổng hợp các lỗi vi phạm trong tháng (Cần chấn chỉnh):</h6>
+                {% if data.top_violations %}
+                    <ul class="mb-3 fs-5">
+                        {% for name, qty in data.top_violations %}
+                            <li>Lỗi <strong>{{ name }}</strong>: Xảy ra <strong>{{ qty }} lượt</strong></li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-success fst-italic">Lớp thực hiện rất tốt, không ghi nhận lỗi vi phạm hệ thống.</p>
+                {% endif %}
+
+                <h6 class="fw-bold text-danger mt-3"><i class="fa-solid fa-user-xmark"></i> Danh sách học sinh vi phạm kỷ luật (Cần phối hợp GVCN giáo dục):</h6>
+                {% if data.frequent_violators %}
+                    <ul class="mb-0 fs-5">
+                        {% for student, issues in data.frequent_violators.items() %}
+                            <li><strong>Học sinh {{ student }}:</strong> {{ issues | join(', ') }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-success fst-italic">Tuyệt vời, không có học sinh nào bị ghi tên vào Sổ đen.</p>
+                {% endif %}
+            </div>
+
+            <div class="section-title">2. Đánh giá về Học tập và Tinh thần xây dựng lớp</div>
+            <div class="highlight-box good">
+                <h6 class="fw-bold text-success"><i class="fa-solid fa-book-open"></i> Tinh thần học tập chung (Dựa trên sổ ghi đầu bài):</h6>
+                <ul class="fs-5">
+                    <li>Tổng số con điểm Tốt (8, 9, 10) đạt được: <strong>{{ data.total_good_points }} con điểm</strong>.</li>
+                    <li>Thái độ học tập các tuần: <strong>{{ data.tuan_tot }} Tuần xếp loại Tốt</strong>, {{ data.tuan_kha }} Tuần xếp loại Khá.</li>
+                </ul>
+
+                <h6 class="fw-bold text-primary mt-3"><i class="fa-solid fa-ranking-star"></i> Các môn học nổi trội, tích cực nhất trong tháng:</h6>
+                <div class="fs-5 mb-3">
+                    {% if data.top_subjects %}
+                        <ul class="mb-0">
+                            {% for subj, pts in data.top_subjects %}
+                                <li>Môn <strong class="text-success">{{ subj }}</strong>: Nhận được nhiều giờ học Tốt nhất ({{ pts }} điểm đánh giá)</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted fst-italic">Chưa có dữ liệu ghi nhận môn học nổi trội.</p>
+                    {% endif %}
+                </div>
+
+                <h6 class="fw-bold text-success mt-3"><i class="fa-solid fa-award"></i> Biểu dương học sinh xuất sắc (Hỗ trợ bạn bè/Phong trào):</h6>
+                {% if data.student_bonus %}
+                    <ul class="mb-0 fs-5">
+                        {% for student, qty in data.student_bonus %}
+                            <li><strong>Học sinh {{ student }}</strong>: Được ghi nhận tích cực (x{{ qty }} lần). Đề xuất biểu dương.</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted fst-italic">Tháng này chưa ghi nhận cá nhân nào nổi bật trên hệ thống thi đua.</p>
+                {% endif %}
+            </div>
+
+            <div class="row mt-5 pt-4 text-center fs-5 fw-bold">
+                <div class="col-6">GIÁO VIÊN CHỦ NHIỆM<br><span class="fst-italic fw-normal" style="font-size: 14px;">(Ký và ghi rõ họ tên)</span></div>
+                <div class="col-6">TM. BCH ĐOÀN TRƯỜNG<br><span class="fst-italic fw-normal" style="font-size: 14px;">(Ký và ghi rõ họ tên)</span></div>
+            </div>
+        </div>
+        <!-- Ngắt trang PDF ở đây -->
+        {% if not loop.last %}<div class="page-break"></div>{% endif %}
+        {% endfor %}
+    </div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        window.onload = function() {
+            // Đợi 1.5 giây (1500ms) để trình duyệt render hoàn tất toàn bộ các trang HTML của tất cả các lớp
+            setTimeout(function() {
+                const element = document.getElementById('pdf-content');
+                const monthName = "{{ selected_month }}".replace(" ", "_");
+                
+                const opt = {
+                    margin:       0.4,
+                    filename:     `Tong_Hop_Phieu_Phan_Tich_${monthName}.pdf`,
+                    image:        { type: 'jpeg', quality: 1 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
+                
+                html2pdf().set(opt).from(element).save().then(function() {
+                    // Đợi tải xong file PDF rồi mới tự đóng tab
+                    setTimeout(function() {
+                        window.close();
+                    }, 1000);
+                });
+            }, 1500);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hồ Sơ Chủ Nhiệm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; color: #0f172a; }
+        .main-content { margin-left: 260px; padding: 30px; min-height: 100vh; transition: all 0.3s ease; }
+        @media (max-width: 768px) {
+            .main-content { margin-left: 0; padding: 15px; padding-top: 80px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- GỌI THANH MENU BÊN TRÁI -->
+    <div id="desktopSidebar" class="no-print">
+        {% include 'sidebar.html' %}
+    </div>
+
+    <!-- PHẦN NỘI DUNG CHÍNH -->
+    <div class="main-content">
+        <!-- Header Page -->
+        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-4 shadow-sm">
+            <div>
+                <h4 class="fw-bold text-success m-0"><i class="fa-solid fa-folder-open me-2"></i> Hồ Sơ Quản Lý Chủ Nhiệm</h4>
+                <p class="text-muted small m-0 mt-1">Trích xuất tự động bảng Sơ kết hàng tuần cho GVCN</p>
+            </div>
+            <a href="/dashboard" class="btn btn-light shadow-sm"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
+        </div>
+
+        <!-- BỘ LỌC CHUYÊN NGHIỆP -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4 bg-light rounded-4">
+                <form method="POST" action="/homeroom_portfolio" class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold text-secondary small"><i class="fa-solid fa-school me-1"></i> Chọn Chi đoàn</label>
+                        <select name="branch_id" class="form-select border-0 shadow-sm fw-bold text-primary">
+                            {% for b in branches %}
+                            <option value="{{ b.id }}" {% if selected_branch and selected_branch.id == b.id %}selected{% endif %}>Lớp {{ b.name }} (GVCN: {{ b.gvcn or 'Trống' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold text-secondary small"><i class="fa-solid fa-calendar-days me-1"></i> Chọn Kỳ đánh giá</label>
+                        <select name="time_filter" class="form-select border-0 shadow-sm fw-bold text-primary">
+                            <optgroup label="Thống kê theo Tháng">
+                                {% for m in available_months %}
+                                <option value="{{ m }}" {% if m == selected_time %}selected{% endif %}>{{ m }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="Thống kê theo Tuần (Đơn lẻ)">
+                                {% for w in available_weeks %}
+                                <option value="{{ w }}" {% if w == selected_time %}selected{% endif %}>{{ w }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm"><i class="fa-solid fa-filter me-1"></i> Tải dữ liệu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- BẢNG XEM TRƯỚC (PREVIEW) -->
+        {% if matrix_data %}
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-table me-2 text-success"></i> Chế độ Xem trước: Bảng Sơ kết</h5>
+                
+                <!-- FORM XUẤT EXCEL NGẦM -->
+                <form action="/export_homeroom_portfolio" method="POST">
+                    <input type="hidden" name="branch_name" value="{{ selected_branch.name }}">
+                    <input type="hidden" name="time_name" value="{{ selected_time }}">
+                    <input type="hidden" name="target_weeks" value="{{ target_weeks | tojson }}">
+                    <input type="hidden" name="matrix_data" value="{{ matrix_data | tojson }}">
+                    <button type="submit" class="btn btn-primary fw-bold shadow-sm"><i class="fa-solid fa-file-excel me-2"></i> Xuất File Excel</button>
+                </form>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle m-0 text-center bg-white">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start px-4" style="width: 25%; font-size: 15px;">Nội dung đánh giá \ Tuần</th>
+                                {% for i in range(5) %}
+                                <th style="width: 15%; font-size: 15px; color: #1e293b;">
+                                    {% if i < target_weeks|length %}{{ target_weeks[i] }}{% else %}-{% endif %}
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in matrix_data %}
+                            <tr>
+                                <td class="text-start px-4 fw-bold text-secondary" style="font-size: 14px;">{{ row.label }}</td>
+                                {% for val in row.values %}
+                                <td class="fs-6 fw-bold {% if val %}text-danger{% else %}text-muted{% endif %}">{{ val }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if not target_weeks %}
+                <div class="text-center py-4 text-danger fw-bold bg-light">
+                    <i class="fa-solid fa-triangle-exclamation mb-2 fs-3"></i><br>
+                    Chưa có dữ liệu chốt sổ của {{ selected_time }} cho lớp này.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

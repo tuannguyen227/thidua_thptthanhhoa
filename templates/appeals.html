@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ Phúc khảo - Quản lý Thi đua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; color: #0f172a; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #1e293b; color: white; padding-top: 20px; z-index: 1000; overflow-y: auto; }
+        .sidebar h4 { font-size: 16px; font-weight: 700; text-align: center; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); text-transform: uppercase; color: #cbd5e1;}
+        .sidebar .nav-link { color: #94a3b8; font-weight: 500; padding: 12px 20px; font-size: 14px; transition: all 0.2s; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: rgba(255,255,255,0.1); color: white; border-left: 4px solid #2563eb; }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .glass-card { background: #ffffff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 24px; }
+        .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .table-modern thead th { background: #f1f5f9; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; padding: 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;}
+        .table-modern tbody td { padding: 16px; font-size: 14px; font-weight: 500; border-bottom: 1px solid #e2e8f0; vertical-align: middle;}
+        .form-select-modern, .form-control-modern { border-radius: 10px; border: 1px solid #cbd5e1; font-size: 14px; padding: 10px 14px; }
+        .form-select-modern:focus, .form-control-modern:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    </style>
+</head>
+<body>
+
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+		<div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-4 shadow-sm border">
+            <h4 class="m-0 fw-bold text-primary"><i class="fa-solid fa-scale-balanced me-2"></i> Trung tâm Quản lý Phúc khảo Toàn trường</h4>
+            <div class="d-flex gap-2 align-items-center">
+                <!-- NÚT THỐNG KÊ NHANH CHO BGH -->
+                <button type="button" class="btn fw-bold shadow-sm rounded-pill px-4" style="background-color: #f59e0b; color: white;" onclick="showAppealStats()">
+                    <i class="fa-solid fa-chart-pie fa-spin-pulse me-2" style="--fa-animation-duration: 3s;"></i> THỐNG KÊ LỚP
+                </button>
+                <div class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill fw-bold border border-success border-opacity-25 d-flex align-items-center" style="height: 38px;">
+                    <i class="fa-solid fa-calendar-check me-1"></i> NH: {{ active_year.name }}
+                </div>
+            </div>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show shadow-sm rounded-4">
+                        <i class="fa-solid fa-circle-info me-2"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+		<!-- BỘ LỌC TÌM KIẾM -->
+        <div class="glass-card p-4">
+            <form method="GET" action="/appeals" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-muted small">Tra cứu Tuần</label>
+                    <select name="search_week" class="form-select form-select-modern">
+                        <option value="">Tất cả các tuần</option>
+                        {% for w in available_weeks %}
+                            <option value="{{ w }}" {% if search_week == w %}selected{% endif %}>{{ w }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-muted small">Lọc theo Lớp</label>
+                    <select name="search_branch" class="form-select form-select-modern">
+                        <option value="">Tất cả các Chi đoàn</option>
+                        {% for b in branches %}
+                            <option value="{{ b.id }}" {% if search_branch == b.id|string %}selected{% endif %}>Lớp {{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold text-muted small">Trạng thái</label>
+                    <select name="search_status" class="form-select form-select-modern">
+                        <option value="all" {% if search_status == 'all' %}selected{% endif %}>Tất cả</option>
+                        <option value="pending" {% if search_status == 'pending' %}selected{% endif %}>Chờ xử lý</option>
+                        <option value="resolved" {% if search_status == 'resolved' %}selected{% endif %}>Đã giải quyết</option>
+                    </select>
+                </div>
+                <!-- Thu gọn ô tìm kiếm còn 2 cột (col-md-2) -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold text-muted small">Tìm Tên HS / Nội dung</label>
+                    <input type="text" name="search_name" value="{{ search_name }}" class="form-control form-control-modern" placeholder="Gõ tên...">
+                </div>
+                <!-- Mở rộng khu vực nút bấm thành 2 cột (col-md-2) và dùng d-flex để 2 nút nằm ngang -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold text-muted small d-none d-md-block">&nbsp;</label> 
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary fw-bold w-50 py-2 rounded-3 shadow-sm" style="background-color: #2563eb;">
+                            <i class="fa-solid fa-filter"></i> Lọc
+                        </button>
+                        <button type="button" class="btn btn-success fw-bold w-50 py-2 rounded-3 shadow-sm" onclick="exportToExcel()">
+                            <i class="fa-solid fa-file-excel"></i> Xuất
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+		<!-- BẢNG DỮ LIỆU PHÚC KHẢO -->
+        <div class="glass-card">
+            <div class="table-responsive" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+                <table id="appealsTable" class="table-modern text-center align-middle mb-0">
+                    <thead style="position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        <tr>
+                            <th>STT</th>
+                            <th>Chi đoàn</th>
+                            <th>Thời gian gửi</th>
+                            <th style="width: 25%; text-align: left;">Lỗi / Tên Học Sinh</th>
+                            <th style="width: 25%; text-align: left;">Lý do (Của GVCN)</th>
+                            <th style="width: 15%;">Trạng thái</th>
+                            <th>Xử lý</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if appeal_records %}
+                            {% for record in appeal_records %}
+                            <tr>
+                                <td class="text-muted fw-bold">{{ loop.index }}</td>
+                                <td>
+                                    <div class="fw-bold text-primary" style="font-size: 15px;">{{ record.branch_name }}</div>
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ record.week }}</span>
+                                </td>
+                                <td><span class="text-muted small fw-bold"><i class="fa-regular fa-clock me-1"></i>{{ record.time }}</span></td>
+                                <td class="text-start text-danger fw-bold" style="font-size: 13px;">
+                                    {{ record.errors_raw | safe if record.errors_raw else "Không đính kèm lỗi" }}
+                                </td>
+                                <td class="text-start text-muted" style="font-size: 13px; line-height: 1.5;">
+                                    {{ record.reason | safe }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ record.badge }} px-3 py-1 rounded-pill mb-1">{{ record.status }}</span>
+                                    {% if record.response %}
+                                        <div class="fst-italic" style="font-size: 11.5px; color: #475569; background: #f8fafc; padding: 6px; border-radius: 6px; border-left: 2px solid {% if record.badge == 'success' %}#22c55e{% else %}#ef4444{% endif %}; text-align: left;">
+                                            {{ record.response | replace('[ĐÃ DUYỆT]', '') | replace('[TỪ CHỐI]', '') | truncate(45) }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <!-- [NÂNG CẤP]: Nạp thêm thuộc tính data-status và data-response để JS bắt được -->
+                                    <button class="btn btn-sm fw-bold px-3 py-1 shadow-sm" 
+                                            style="background: {% if record.status == 'Đang chờ xử lý' %}#f59e0b{% else %}#f1f5f9{% endif %}; 
+                                                   color: {% if record.status == 'Đang chờ xử lý' %}#fff{% else %}#475569{% endif %}; border-radius: 8px;"
+                                            onclick="openResolveModal(this)"
+                                            data-score-id="{{ record.score_id }}"
+                                            data-branch-name="{{ record.branch_name }}"
+                                            data-week="{{ record.week }}"
+                                            data-reason="{{ record.raw_reason }}"
+                                            data-status="{{ record.status }}"
+                                            data-response="{{ record.response }}">
+                                        {% if record.status == 'Đang chờ xử lý' %}<i class="fa-solid fa-reply me-1"></i> Xử lý ngay{% else %}<i class="fa-solid fa-eye me-1"></i> Xem lại{% endif %}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted fst-italic">
+                                    <i class="fa-solid fa-folder-open fs-2 d-block mb-3 opacity-25"></i>
+                                    Không tìm thấy dữ liệu khiếu nại nào phù hợp với bộ lọc.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: TRẢ LỜI PHÚC KHẢO -->
+    <div class="modal fade" id="resolveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="modal-header bg-primary text-white border-0 pb-3" style="padding: 24px;">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-scale-balanced me-2"></i> Xử lý Phán quyết Phúc khảo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/resolve_appeal" method="POST">
+                    <div class="modal-body px-4 pb-4 mt-3">
+                        <input type="hidden" name="score_id" id="resolveScoreId">
+                        
+                        <!-- THANH THÔNG BÁO CHẾ ĐỘ XEM LẠI -->
+                        <div id="resolveStatusBanner" class="alert alert-info d-none mb-3 py-2 fw-bold" style="border-radius: 10px; font-size: 14px;">
+                            <i class="fa-solid fa-circle-check me-1"></i> Phúc khảo này đã được giải quyết. Dưới đây là phán quyết trước đó:
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="fw-bold text-muted small mb-2">Lớp khiếu nại:</label>
+                            <input type="text" class="form-control fw-bold text-primary bg-light border-0" id="resolveBranch" readonly style="padding: 12px 16px; border-radius: 12px;">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="fw-bold text-muted small mb-2">Nội dung khiếu nại của GVCN:</label>
+                            <div class="p-3 bg-light border border-secondary border-opacity-25 text-danger fst-italic shadow-sm" id="resolveReason" style="border-radius: 12px; font-size: 14px;">
+                            </div>
+                        </div>
+
+                        <div class="mb-4 p-3 bg-primary bg-opacity-10 border border-primary border-opacity-50" style="border-radius: 12px;">
+                            <label class="fw-bold text-primary small mb-2"><i class="fa-solid fa-rotate-left me-1"></i> Số điểm hoàn lại (Chỉ nhập nếu Duyệt):</label>
+                            <input type="number" step="0.5" min="0" class="form-control border-primary fw-bold fs-5 text-primary" name="refund_points" value="0" style="border-radius: 12px;">
+                            <small class="text-muted mt-2 d-block"><i class="fa-solid fa-circle-info me-1"></i> Hệ thống tự động cộng số điểm này vào điểm của lớp và xóa lỗi khỏi Sổ đen.</small>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <label class="fw-bold text-muted small mb-2">Phán quyết & Phản hồi từ Đoàn trường:</label>
+                            <!-- BỔ SUNG id="resolveResponse" VÀO DÒNG DƯỚI ĐÂY -->
+                            <textarea class="form-control border-secondary" id="resolveResponse" name="response_text" rows="3" placeholder="Ghi rõ lý do tại sao duyệt hoặc từ chối để GVCN nắm rõ..." required style="border-radius: 12px; resize: none; padding: 16px; font-size: 14px; background: #f8fafc; border: 1px solid #cbd5e1;"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex gap-2">
+                        <button type="submit" name="action" value="reject" class="btn btn-danger fw-bold flex-grow-1 py-2 rounded-3 shadow-sm">
+                            <i class="fa-solid fa-ban me-1"></i> Từ chối
+                        </button>
+                        <button type="submit" name="action" value="approve" class="btn btn-success fw-bold flex-grow-1 py-2 rounded-3 shadow-sm">
+                            <i class="fa-solid fa-check-double me-1"></i> Duyệt & Hoàn Điểm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+	<!-- MODAL 2: XEM TRƯỚC BẢN IN EXCEL -->
+    <div class="modal fade" id="previewExcelModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header bg-success text-white pb-3" style="padding: 20px 24px;">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-excel me-2"></i> Xem trước Dữ liệu Xuất Excel</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0 bg-light">
+                    <div class="p-4">
+                        <div class="text-center mb-4">
+                            <h4 class="fw-bold text-uppercase mb-1" style="color: #0f172a;">BẢNG TỔNG HỢP HỒ SƠ PHÚC KHẢO THI ĐUA</h4>
+                            <p class="fst-italic text-muted mb-0">Trích xuất từ Hệ thống Quản lý Đoàn vụ - Trường THPT Thanh Hòa</p>
+                        </div>
+                        <div class="table-responsive border bg-white shadow-sm" style="border-radius: 12px;">
+                            <table class="table table-bordered table-hover mb-0 text-dark" id="previewTable" style="font-size: 14px;">
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white px-4 py-3" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                    <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" onclick="executeExcelDownload()">
+                        <i class="fa-solid fa-download me-2"></i> Xác nhận Tải File .XLSX
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+	<!-- MODAL 3: THỐNG KÊ TẦN SUẤT KHIẾU NẠI (BẢNG PHONG THẦN) -->
+    <div class="modal fade" id="statsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header text-white pb-3" style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 20px 24px;">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-chart-pie me-2"></i> Thống kê Tần suất Khiếu nại (Theo bộ lọc hiện tại)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <!-- Nơi hiển thị các thẻ Card biểu đồ của từng lớp -->
+                    <div id="statsContainer">
+                        <div class="text-center text-muted py-5"><i class="fa-solid fa-spinner fa-spin fs-2 mb-3"></i><br>Đang phân tích dữ liệu...</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white px-4 py-3" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                    <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">Đóng cửa sổ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+	<!-- Thư viện ExcelJS và FileSaver hỗ trợ định dạng khung lưới, màu sắc, font chữ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- Script xử lý Popup và tự động cộng điểm hoàn lại -->
+    <script>
+        const violationBankData = [
+            {% for cat in violation_bank %}
+            { name: "{{ cat.name | safe }}", points: parseFloat('{{ cat.penalty_points }}') || 0 },
+            {% endfor %}
+        ];
+
+        function openResolveModal(btn) {
+            document.getElementById('resolveScoreId').value = btn.getAttribute('data-score-id');
+            document.getElementById('resolveBranch').value = "Lớp " + btn.getAttribute('data-branch-name') + " (" + btn.getAttribute('data-week') + ")";
+            
+            let reasonText = btn.getAttribute('data-reason') || '';
+            let reasonDiv = document.getElementById('resolveReason');
+            if (reasonDiv) {
+                reasonDiv.innerHTML = '"' + reasonText.replace(/ \| /g, '<br><br>') + '"';
+            }
+
+            let refundInput = document.querySelector('input[name="refund_points"]');
+            if (refundInput) {
+                let totalRefund = 0.0;
+                try {
+                    let regex = /Phúc khảo các lỗi:\s*\[(.*?)\]\s*\|/g;
+                    let matches = [...reasonText.matchAll(regex)];
+                    
+                    matches.forEach(match => {
+                        let errorsStr = match[1]; 
+                        let appealedErrors = errorsStr.split("] & ["); 
+                        
+                        appealedErrors.forEach(errStr => {
+                            let cleanErr = errStr.trim();
+                            if (!cleanErr) return;
+                            
+                            let qtyMatch = cleanErr.match(/(?:x|:|-)\s*(\d+)/i);
+                            let qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                            
+                            let foundPoints = 0.0;
+                            for (let i = 0; i < violationBankData.length; i++) {
+                                if (cleanErr.toLowerCase().includes(violationBankData[i].name.toLowerCase())) {
+                                    foundPoints = violationBankData[i].points;
+                                    break;
+                                }
+                            }
+                            totalRefund += (foundPoints * qty);
+                        });
+                    });
+                } catch (e) { console.error("Lỗi tự động tính điểm hoàn:", e); }
+                
+                refundInput.value = totalRefund > 0 ? totalRefund.toFixed(1) : "0.0";
+            }
+            
+            // -----------------------------------------------------------------
+            // NẠP DỮ LIỆU PHẢN HỒI CŨ VÀO TEXTAREA (NẾU MỞ Ở CHẾ ĐỘ "XEM LẠI")
+			// -----------------------------------------------------------------
+            let rawResponse = btn.getAttribute('data-response') || '';
+            let status = btn.getAttribute('data-status') || '';
+            
+            // Dò tìm thông tin Người xử lý và Thời gian bằng Regex
+            let handlerMatch = rawResponse.match(/\(Xử lý bởi: (.*?) lúc (.*?)\)/);
+            let handlerName = handlerMatch ? handlerMatch[1] : 'BCH Đoàn trường (Dữ liệu cũ)';
+            let handlerTime = handlerMatch ? handlerMatch[2] : 'Trước đây';
+            
+            // Lọc bỏ chuỗi thông tin và tiền tố để trả lại nội dung sạch cho ô Textarea
+            let oldResponse = rawResponse.replace(/\(Xử lý bởi: .*? lúc .*?\)/g, '');
+            oldResponse = oldResponse.replace(/\[ĐÃ DUYỆT BỘ PHẬN\]/g, '')
+                                     .replace(/\[TỪ CHỐI\]/g, '')
+                                     .replace(/Phản hồi:/g, '').trim();
+            
+            let responseBox = document.getElementById('resolveResponse');
+            let statusBanner = document.getElementById('resolveStatusBanner');
+            
+            if (responseBox) responseBox.value = oldResponse;
+            
+            // Bật/tắt dải ruy băng màu xanh thông báo "Đã giải quyết" kèm Thông tin người duyệt
+            if (status !== 'Đang chờ xử lý' && oldResponse !== '') {
+                statusBanner.classList.remove('d-none');
+                statusBanner.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Phúc khảo này đã được giải quyết bởi <b class="text-primary">${handlerName}</b> vào lúc <b class="text-primary">${handlerTime}</b>. Dưới đây là phán quyết trước đó:`;
+            } else {
+                statusBanner.classList.add('d-none');
+            }
+            // -----------------------------------------------------------------
+
+            var myModal = new bootstrap.Modal(document.getElementById('resolveModal'));
+            myModal.show();
+        }
+    </script>
+
+	<!-- Script xử lý Trích xuất và Định dạng chuẩn Văn bản Hành chính -->
+    <script>
+        let cleanExcelData = []; 
+
+        function exportToExcel() {
+            let table = document.getElementById("appealsTable");
+            if (!table) return;
+
+            let rows = table.rows;
+            cleanExcelData = []; 
+            let previewHTML = '<thead class="table-light text-center align-middle"><tr>';
+
+            let headers = [];
+            let headerCells = rows[0].cells;
+            for (let j = 0; j < headerCells.length - 1; j++) {
+                let text = headerCells[j].innerText.trim();
+                headers.push(text);
+                previewHTML += `<th>${text}</th>`;
+            }
+            cleanExcelData.push(headers);
+            previewHTML += '</tr></thead><tbody>';
+
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].cells.length === 1) continue; 
+                
+                let rowData = [];
+                previewHTML += '<tr>';
+                for (let j = 0; j < rows[i].cells.length - 1; j++) {
+                    let cellText = rows[i].cells[j].innerText.replace(/\n+/g, ' - ').trim();
+                    rowData.push(cellText);
+                    
+                    let alignClass = (j === 3 || j === 4) ? 'text-start' : 'text-center';
+                    previewHTML += `<td class="${alignClass}">${cellText}</td>`;
+                }
+                cleanExcelData.push(rowData);
+                previewHTML += '</tr>';
+            }
+            previewHTML += '</tbody>';
+
+            document.getElementById('previewTable').innerHTML = previewHTML;
+            var previewModal = new bootstrap.Modal(document.getElementById('previewExcelModal'));
+            previewModal.show();
+        }
+
+        async function executeExcelDownload() {
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Hồ sơ Phúc khảo', {
+                pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true }
+            });
+
+            sheet.mergeCells('A1:F1');
+            const titleCell = sheet.getCell('A1');
+            titleCell.value = 'BẢNG TỔNG HỢP HỒ SƠ PHÚC KHẢO THI ĐUA';
+            titleCell.font = { name: 'Times New Roman', size: 16, bold: true };
+            titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            sheet.mergeCells('A2:F2');
+            const subTitleCell = sheet.getCell('A2');
+            subTitleCell.value = 'Trích xuất từ Hệ thống Quản lý Đoàn vụ - Trường THPT Thanh Hòa';
+            subTitleCell.font = { name: 'Times New Roman', size: 12, italic: true };
+            subTitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            sheet.addRow([]);
+
+            const headerRow = sheet.addRow(cleanExcelData[0]);
+            headerRow.height = 30; 
+            headerRow.eachCell((cell) => {
+                cell.font = { name: 'Times New Roman', size: 12, bold: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }; 
+                cell.border = { 
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }; 
+            });
+
+            for (let i = 1; i < cleanExcelData.length; i++) {
+                const row = sheet.addRow(cleanExcelData[i]);
+                row.eachCell((cell, colNumber) => {
+                    cell.font = { name: 'Times New Roman', size: 12 }; 
+                    cell.border = {
+                        top: { style: 'thin' }, left: { style: 'thin' },
+                        bottom: { style: 'thin' }, right: { style: 'thin' }
+                    };
+                    
+                    if (colNumber === 4 || colNumber === 5) {
+                        cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                    } else {
+                        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                    }
+                });
+            }
+
+            sheet.getColumn(1).width = 6;   
+            sheet.getColumn(2).width = 16;  
+            sheet.getColumn(3).width = 20;  
+            sheet.getColumn(4).width = 45;  
+            sheet.getColumn(5).width = 45;  
+            sheet.getColumn(6).width = 25;  
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            let today = new Date();
+            let dateStr = today.getDate() + "_" + (today.getMonth() + 1) + "_" + today.getFullYear();
+            saveAs(blob, "TongHop_PhucKhao_THPTThanhHoa_" + dateStr + ".xlsx");
+
+            bootstrap.Modal.getInstance(document.getElementById('previewExcelModal')).hide();
+        }
+
+		// Hàm Phân tích và Hiển thị Bảng Phong thần
+        function showAppealStats() {
+            var statsModal = new bootstrap.Modal(document.getElementById('statsModal'));
+            statsModal.show();
+
+            let table = document.getElementById("appealsTable");
+            if (!table) return;
+            let rows = table.rows;
+            
+            let classStats = {}; 
+            
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].cells.length <= 1) continue;
+                
+                let branchCell = rows[i].cells[1];
+                let branchName = branchCell.querySelector('.text-primary') ? branchCell.querySelector('.text-primary').innerText.trim() : "";
+                
+                let statusCell = rows[i].cells[5];
+                let statusText = statusCell.innerText.trim();
+                
+                if (!branchName) continue;
+                if (!classStats[branchName]) {
+                    classStats[branchName] = { total: 0, approved: 0, rejected: 0, pending: 0 };
+                }
+                
+                classStats[branchName].total++;
+                if (statusText.includes("Đã duyệt")) classStats[branchName].approved++;
+                else if (statusText.includes("Từ chối")) classStats[branchName].rejected++;
+                else classStats[branchName].pending++;
+            }
+            
+            let sortedStats = Object.keys(classStats).map(key => {
+                return { name: key, ...classStats[key] };
+            });
+            sortedStats.sort((a, b) => b.total - a.total);
+            
+            let html = '<div class="row g-3">';
+            if (sortedStats.length === 0) {
+                html = '<div class="text-center text-muted py-5"><i class="fa-solid fa-box-open fs-1 mb-3 opacity-50"></i><br>Không có dữ liệu khiếu nại nào để phân tích.</div>';
+            } else {
+                sortedStats.forEach((stat, index) => {
+                    let borderClass = stat.total >= 3 ? 'border-danger' : 'border-secondary border-opacity-25';
+                    let rankIcon = index === 0 ? '👑 (Top 1)' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : ''));
+                    let textClass = index === 0 ? 'text-danger fw-bold' : 'text-dark';
+
+                    html += `
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100 bg-white" style="border-radius: 12px; border: 2px solid ${stat.total >= 3 ? '#ef4444' : '#e2e8f0'};">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="m-0 fs-6 ${textClass}">${rankIcon} ${stat.name}</h6>
+                                    <span class="badge bg-dark rounded-pill fs-6 px-3 shadow-sm">${stat.total} Đơn</span>
+                                </div>
+                                
+                                <div class="progress mb-2 bg-light border" style="height: 12px; border-radius: 6px;">
+                                    <div class="progress-bar bg-success" style="width: ${(stat.approved/stat.total)*100}%" title="Duyệt"></div>
+                                    <div class="progress-bar bg-danger" style="width: ${(stat.rejected/stat.total)*100}%" title="Từ chối"></div>
+                                    <div class="progress-bar" style="background-color: #f59e0b; width: ${(stat.pending/stat.total)*100}%" title="Đang chờ"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between small fw-bold mt-2 px-1">
+                                    <span class="text-success"><i class="fa-solid fa-check-double me-1"></i>Oan (Duyệt): ${stat.approved}</span>
+                                    <span class="text-danger"><i class="fa-solid fa-ban me-1"></i>Cãi (Từ chối): ${stat.rejected}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            }
+            html += '</div>';
+            
+            setTimeout(() => { document.getElementById('statsContainer').innerHTML = html; }, 400); 
+        }
+    </script>
+</body>
+</html>

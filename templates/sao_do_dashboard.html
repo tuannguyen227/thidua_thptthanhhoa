@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- CẤU HÌNH PWA - APP HÓA TRÌNH DUYỆT -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#dc3545">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes"> 
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Sổ Đầu Bài">
+
+    <title>Chấm Điểm Thi Đua - Đội Sao Đỏ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { 
+            background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+            padding-bottom: 90px; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth;
+        }
+        
+        .app-header { 
+            background: linear-gradient(135deg, #dc3545, #c82333); color: white; 
+            padding: 15px 20px; padding-top: max(15px, env(safe-area-inset-top));
+            position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 15px rgba(220,53,69,0.3);
+            border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+        }
+        .app-title { margin: 0; font-weight: 800; font-size: 19px; letter-spacing: 0.5px; }
+        
+        .user-welcome { background: #fffcf2; margin: 15px; padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border-left: 5px solid #0d6efd; border: 1px solid #ffe69c; }
+        
+        .accordion-item { border: none; border-radius: 16px !important; margin: 0 15px 15px 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); overflow: hidden; }
+        .accordion-button { font-weight: 700; font-size: 16px; color: #004080; padding: 18px 15px; background-color: #ffffff; }
+        .accordion-button:not(.collapsed) { background-color: #eff5ff; color: #0d6efd; box-shadow: none; border-bottom: 2px solid #0d6efd; }
+        
+        .form-control, .form-select { border-radius: 8px; padding: 10px 12px; font-size: 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
+        .btn-submit { border-radius: 12px; padding: 14px; font-weight: 800; font-size: 15px; letter-spacing: 0.5px; transition: transform 0.1s; }
+        .btn-submit:active { transform: scale(0.97); }
+        .btn-submit:disabled { opacity: 0.8; cursor: not-allowed; }
+
+        .card-custom { border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.02); margin-bottom: 15px; }
+        .card-custom-header { padding: 10px 15px; font-weight: 800; font-size: 14px; color: white; display: flex; justify-content: space-between; align-items: center;}
+        
+        .table-scores th { font-size: 11px; padding: 8px 4px; text-align: center; vertical-align: middle; background: #e9ecef; border-bottom: 1px solid #dee2e6;}
+        .table-scores td { padding: 4px; vertical-align: middle; border-bottom: 1px solid #dee2e6;}
+        .input-score { text-align: center; font-weight: 800; font-size: 14px; padding: 5px; height: 35px; transition: 0.2s;}
+        .input-score:focus { transform: scale(1.1); z-index: 10; position: relative; box-shadow: 0 0 10px rgba(13,110,253,0.3);}
+        .input-subj { font-weight: 700; font-size: 13px; padding: 5px 8px; height: 35px; color: #004080;}
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-around; align-items: center;
+            padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom));
+            z-index: 1050; border-top-left-radius: 20px; border-top-right-radius: 20px;
+        }
+        .nav-item { text-align: center; color: #adb5bd; font-size: 11px; text-decoration: none; flex: 1; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-item.active { color: #dc3545; }
+        .nav-item i { font-size: 22px; transition: transform 0.2s; }
+
+        .toast-container { position: fixed; top: env(safe-area-inset-top, 20px); left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px;}
+        .native-toast { background: rgba(40, 167, 69, 0.95); backdrop-filter: blur(5px); color: white; border-radius: 30px; padding: 12px 20px; font-weight: 700; font-size: 14px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); animation: slideDown 0.4s forwards; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .native-toast.error { background: rgba(220, 53, 69, 0.95); }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(10px); opacity: 1; } }
+        @keyframes slideUpOut { from { transform: translateY(10px); opacity: 1; } to { transform: translateY(-50px); opacity: 0; } }
+
+        .modal-dialog-bottom { display: flex; align-items: flex-end; min-height: calc(100% - 1rem); margin: 0;}
+        .modal.fade .modal-dialog-bottom { transform: translate(0, 50px); transition: transform 0.3s ease-out; }
+        .modal.show .modal-dialog-bottom { transform: none; }
+        
+        .quick-tag { border: 1px solid #dc3545; color: #dc3545; border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-block; margin-bottom: 5px; margin-right: 3px; background: white;}
+        .quick-tag:active { transform: scale(0.95); }
+        
+        .class-quick-btn { transition: all 0.15s ease-in-out; }
+        .class-quick-btn:active { transform: scale(0.92); }
+        .modal-quick-tag { transition: all 0.2s; }
+        .modal-quick-tag.active { background-color: #dc3545 !important; color: white !important; box-shadow: 0 4px 10px rgba(220,53,69,0.3); border-color: #c82333 !important; transform: scale(1.05); }
+
+        /* ======================================================== */
+        /* [BỔ SUNG]: GIAO DIỆN TRẠNG THÁI MẠNG (OFFLINE MODE)      */
+        /* ======================================================== */
+        #network-status-banner {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 9999;
+            background-color: #f59e0b; color: white;
+            text-align: center; font-size: 13px; font-weight: 700;
+            padding: 8px 15px; display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        #sync-button-container {
+            position: fixed; bottom: 80px; right: 20px; z-index: 9998;
+            display: none;
+        }
+        .btn-sync-float {
+            background-color: #10b981; color: white;
+            border: none; border-radius: 50px;
+            padding: 12px 20px; font-weight: bold; font-size: 14px;
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
+            display: flex; align-items: center; gap: 8px;
+        }
+        /* ======================================================== */
+    </style>
+</head>
+<body>
+
+    <!-- Thanh thông báo mất mạng -->
+    <div id="network-status-banner">
+        <i class="fa-solid fa-wifi-slash me-1"></i> MẤT KẾT NỐI MẠNG! App đã chuyển sang chế độ lưu tạm.
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- [BỔ SUNG]: NÚT GIỎ CHỜ VÀ MODAL QUẢN LÝ ÂN HẠN           -->
+    <!-- ======================================================== -->
+    <div id="sync-button-container">
+        <button class="btn-sync-float" style="background-color: #f59e0b;" onclick="openGraceQueueModal()">
+            <i class="fa-solid fa-basket-shopping"></i>
+            <span>Giỏ chờ (<span id="pending-count">0</span>)</span>
+        </button>
+    </div>
+
+    <!-- MODAL QUẢN LÝ HÀNG CHỜ ÂN HẠN -->
+    <div class="modal fade" id="graceQueueModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-bottom m-0" style="position: absolute; bottom: 0; width: 100%; z-index: 1060;">
+            <div class="modal-content border-0" style="border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);">
+                <div class="modal-header border-0 pb-0 justify-content-center position-relative">
+                    <div style="width: 40px; height: 5px; background: #dee2e6; border-radius: 10px; position: absolute; top: 12px;"></div>
+                    <h5 class="modal-title fw-bold text-dark mt-3 fs-5"><i class="fa-solid fa-clock-rotate-left text-warning me-1"></i> Giỏ Chờ & Hoàn Tác</h5>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 mt-3 me-3" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-3 pb-4">
+                    <div class="alert alert-info border-0 bg-info bg-opacity-10 small fw-bold rounded-3">
+                        <i class="fa-solid fa-circle-info me-1"></i> Các phiếu điểm dưới đây đang bị giữ lại trong 15 phút. Bạn có thể bấm <strong class="text-danger">Hủy nộp</strong> để sửa lại nếu có sai sót.
+                    </div>
+                    <div id="queueListContainer" class="d-flex flex-column gap-2 mb-3" style="max-height: 50vh; overflow-y: auto;">
+                        <!-- JS sẽ đổ danh sách vào đây -->
+                    </div>
+                    <button class="btn btn-primary w-100 fw-bold rounded-3 py-3 shadow-sm" onclick="forceSyncAllNow()">
+                        <i class="fa-solid fa-cloud-arrow-up me-1"></i> BỎ QUA GIA HẠN - NỘP NGAY
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ======================================================== -->
+
+    <div class="app-header">
+        <div class="d-flex align-items-center justify-content-center w-100">
+            <i class="fa-solid fa-shield-halved fs-4 me-2"></i>
+            <div>
+                <div class="app-title">HỆ THỐNG ĐỘI SAO ĐỎ</div>
+                <div style="font-size: 11px; opacity: 0.9; text-align: center;">Design:Cô THÙY TIÊN - Thầy Đức Anh</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    {% for category, message in messages %}
+                        showNativeToast("{{ message }}", "{{ category }}");
+                    {% endfor %}
+                });
+            </script>
+        {% endif %}
+    {% endwith %}
+
+    <div id="homeSection">
+        <!-- ====================================================== -->
+        <!-- KHỐI 1: KHU VỰC CÁ NHÂN & CÀI ĐẶT (TỐI GIẢN, HIỆN ĐẠI)    -->
+        <!-- ====================================================== -->
+        <div class="px-3 pt-3 pb-2 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <!-- Avatar tự động lấy chữ cái đầu của tên Sao Đỏ -->
+                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center shadow-sm" style="width: 45px; height: 45px; font-size: 20px; font-weight: bold; border: 2px solid white;">
+                    {{ session.get('full_name')[0] if session.get('full_name') else 'S' }}
+                </div>
+                <div style="line-height: 1.2;">
+                    <span class="text-muted fw-bold" style="font-size: 12px;">Xin chào Sao đỏ,</span><br>
+                    <span class="text-dark fw-bolder" style="font-size: 16px; letter-spacing: -0.5px;">{{ session.get('full_name') | replace('SĐ: ', '') }}</span>
+                </div>
+            </div>
+            
+            <!-- Bộ 3 Nút Cài đặt (Đã chuyển thành Icon Tròn tinh tế) -->
+            <div class="d-flex gap-2">
+                <button class="btn btn-light rounded-circle shadow-sm d-flex justify-content-center align-items-center" onclick="openChangePasswordModal()" style="width: 36px; height: 36px; color: #475569;" title="Đổi mật khẩu">
+                    <i class="fa-solid fa-key"></i>
+                </button>
+                <button class="btn btn-light rounded-circle shadow-sm d-flex justify-content-center align-items-center" onclick="registerBiometric()" style="width: 36px; height: 36px; color: #10b981;" title="Cài Vân tay/FaceID">
+                    <i class="fa-solid fa-fingerprint"></i>
+                </button>
+                <button class="btn btn-light rounded-circle shadow-sm d-flex justify-content-center align-items-center" id="btnPushNotify" onclick="enablePushNotifications()" style="width: 36px; height: 36px; color: #3b82f6;" title="Bật thông báo">
+                    <i class="fa-solid fa-bell"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ====================================================== -->
+        <!-- KHỐI 2: BẢNG TIN CHỮ CHẠY ĐIỀU HÀNH TỪ ĐOÀN TRƯỜNG     -->
+        <!-- ====================================================== -->
+		<style>
+            .news-ticker-container {
+                background: linear-gradient(90deg, #fffbeb, #fef3c7);
+                border: 1px solid #fde68a; border-radius: 10px; overflow: hidden;
+                display: flex; align-items: center; position: relative;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            }
+            .ticker-icon {
+                background: #f59e0b; color: white; padding: 8px 12px; font-size: 13px;
+                z-index: 10; box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            }
+            .ticker-text-wrapper { flex: 1; overflow: hidden; white-space: nowrap; position: relative; }
+            .ticker-text {
+                display: inline-block; padding-left: 100%;
+                /* Sử dụng biến động --ticker-duration do JavaScript truyền vào */
+                animation: ticker var(--ticker-duration, 20s) linear infinite; 
+                color: #b45309; font-weight: 700; font-size: 13.5px;
+            }
+            @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        </style>
+        
+        <div class="px-3 my-2">
+            <div class="news-ticker-container">
+                <div class="ticker-icon"><i class="fa-solid fa-bullhorn fa-shake"></i></div>
+                <div class="ticker-text-wrapper"><span class="ticker-text">{{ announcement_text }}</span></div>
+            </div>
+        </div>
+
+        <!-- ====================================================== -->
+        <!-- KHỐI 3: THẺ NHIỆM VỤ (BỐ CỤC WIDGET THÔNG MINH - 2 CỘT) -->
+        <!-- ====================================================== -->
+        <div class="px-3 mb-2">
+            {% if assignment %}
+            <div class="card border-0 rounded-4 overflow-hidden mt-1" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                
+                <!-- DÒNG 1: HEADER THỜI GIAN (Nằm ngang gọn gàng) -->
+                <div class="d-flex justify-content-between align-items-center p-2 px-3 border-bottom" style="background-color: #f8fafc;">
+                    <div class="fw-bold text-primary d-flex align-items-center gap-2" style="font-size: 13px;">
+                        <div class="bg-primary bg-opacity-10 rounded d-flex justify-content-center align-items-center" style="width: 24px; height: 24px;">
+                            <i class="fa-solid fa-calendar-week"></i>
+                        </div>
+                        {{ current_week }}
+                    </div>
+                    {% if start_date and end_date %}
+                    <div class="text-secondary fw-bold" style="font-size: 11.5px;">
+                        {{ start_date }} <i class="fa-solid fa-arrow-right mx-1 text-muted" style="font-size: 9px;"></i> {{ end_date }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- DÒNG 2: THÔNG TIN TRỰC CHIA 2 CỘT (TỐI ƯU KHÔNG GIAN) -->
+                <div class="row g-0">
+                    <!-- CỘT TRÁI: VỊ TRÍ CHẤM (Chiếm 65% diện tích) -->
+                    <div class="col-7 p-3 border-end position-relative bg-white">
+                        <i class="fa-solid fa-location-crosshairs position-absolute text-danger opacity-10" style="font-size: 50px; bottom: 5px; right: 10px;"></i>
+                        
+                        <div class="text-muted fw-bold mb-1" style="font-size: 10px; letter-spacing: 0.5px;">VỊ TRÍ CHẤM ĐIỂM:</div>
+                        <div class="text-danger m-0" style="font-size: 24px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2;">
+                            {{ assignment.duty_area.name if assignment.duty_area else 'Chưa phân cụm' }}
+                        </div>
+                    </div>
+                    
+                    <!-- CỘT PHẢI: CA TRỰC (Chiếm 35% diện tích) -->
+                    <div class="col-5 p-3 d-flex flex-column justify-content-center align-items-center" style="background-color: #fffbeb;">
+                        <div class="text-muted fw-bold mb-1" style="font-size: 10px; letter-spacing: 0.5px;">CA TRỰC:</div>
+                        <div class="text-warning m-0 d-flex align-items-center gap-1" style="font-size: 18px; font-weight: 800;">
+                            {% if assignment.shift == 'Sáng' %}
+                                <i class="fa-solid fa-sun fs-6"></i> Sáng
+                            {% elif assignment.shift == 'Chiều' %}
+                                <i class="fa-solid fa-cloud-sun fs-6"></i> Chiều
+                            {% else %}
+                                <i class="fa-regular fa-clock fs-6"></i> {{ assignment.shift }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            {% else %}
+            <!-- Trạng thái không có lịch trực -->
+            <div class="card border-0 rounded-4 shadow-sm text-center p-3 mt-1" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex justify-content-center align-items-center mx-auto mb-2" style="width: 50px; height: 50px;">
+                    <i class="fa-solid fa-mug-hot fs-4"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-1">Bạn đang được nghỉ!</h6>
+                <p class="text-muted small m-0">Tuần này bạn không có lịch phân công trực.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="px-3 mt-3">
+            <button type="button" class="btn w-100 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" 
+                    style="background: #20c997; color: white; border-radius: 12px; padding: 14px; font-size: 16px;"
+                    data-bs-toggle="modal" data-bs-target="#quickLogModal" onclick="triggerHaptic(30)">
+                <i class="fa-solid fa-bolt fs-4 text-warning"></i>
+                <span>TRỰC CỔNG (GHI NHẬN NHANH)</span>
+            </button>
+        </div>
+    </div>
+
+    {% if assignment and target_classes %}
+        <div class="px-3 mb-2 mt-4" id="taskSection">
+            <h6 class="fw-bold m-0" style="color: #6c757d; font-size: 12px; letter-spacing: 0.5px;">📚 CHẤM CHI ĐOÀN:</h6>
+        </div>
+
+        <div class="accordion" id="classesAccordion">
+            {% for b in target_classes %}
+            {% set sc = existing_scores.get(b.id) %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ b.id }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ b.id }}" onclick="triggerHaptic(20);">
+                        <i class="fa-solid fa-school-flag me-3 fs-5" style="color: #004080;"></i> 
+                        <span class="fs-5 fw-bold">Chi đoàn {{ b.name }}</span>
+                        {% if sc %}
+                            <span class="badge bg-success ms-auto me-2" style="font-size: 11px;">Đã nộp</span>
+                        {% endif %}
+                    </button>
+                </h2>
+                <div id="collapse{{ b.id }}" class="accordion-collapse collapse" data-bs-parent="#classesAccordion">
+                    <div class="accordion-body p-2" style="background-color: #f8f9fa;">
+                        
+                        <form method="POST" action="/submit_mobile_sao_do" id="form_submit_{{ b.id }}">
+                            <input type="hidden" name="week_name" value="{{ current_week }}">
+                            <input type="hidden" name="branch_id" value="{{ b.id }}">
+                            <input type="hidden" name="raw_scores_json" id="raw_scores_json_{{ b.id }}" value="[]">
+                            <input type="hidden" name="c10" id="hidden_c10_{{ b.id }}" value="0">
+                            <input type="hidden" name="c9" id="hidden_c9_{{ b.id }}" value="0">
+                            <input type="hidden" name="c8" id="hidden_c8_{{ b.id }}" value="0">
+
+                            <!-- CƠ CHẾ MỚI: Lấy chính xác Tổng điểm cũ làm mốc để cộng/trừ biến động -->
+                            <input type="hidden" id="old_total_score_{{ b.id }}" value="{{ sc.total_score if (sc and sc.total_score is not none) else 100.0 }}">
+                            <input type="hidden" id="old_c10_{{ b.id }}" value="{{ sc.count_10 if sc else 0 }}">
+                            <input type="hidden" id="old_c9_{{ b.id }}" value="{{ sc.count_9 if sc else 0 }}">
+                            <input type="hidden" id="old_c8_{{ b.id }}" value="{{ sc.count_8 if sc else 0 }}">
+                            <input type="hidden" id="old_rating_{{ b.id }}" value="{{ sc.week_rating if sc else 'Bình thường' }}">
+                            <input type="hidden" id="old_note_{{ b.id }}" value="{{ sc.note if sc else '' }}">
+                            <div id="autoPenaltyPreview_{{ b.id }}" class="d-none" data-penalty="0"></div>
+
+                            <div id="hidden_viols_{{ b.id }}">
+                                {% for cat in violations_bank %}
+                                    <input type="hidden" name="viol_{{ cat.id }}" id="viol_{{ b.id }}_{{ cat.id }}" value="0">
+                                    <input type="hidden" name="student_{{ cat.id }}" id="student_{{ b.id }}_{{ cat.id }}" value="">
+                                {% endfor %}
+                                <input type="hidden" name="manual_note" id="manual_note_{{ b.id }}" value="">
+                            </div>
+
+                            <!-- 1. BẢNG MÔN HỌC -->
+                            <div class="card-custom" style="border: 1.5px solid #0d6efd;">
+                                <div class="card-custom-header" style="background-color: #0d6efd;">
+                                    <span><i class="fa-solid fa-book"></i> Điểm Học Tập (Sổ đầu bài)</span>
+                                </div>
+                                <div class="bg-white p-2">
+                                    <table class="table table-borderless table-scores w-100 m-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 36%;">Môn học</th>
+                                                <th style="width: 17%; color: #dc3545;">SL 10</th>
+                                                <th style="width: 17%; color: #0d6efd;">SL 9</th>
+                                                <th style="width: 17%; color: #6c757d;">SL 8</th>
+                                                <th style="width: 13%;">Xóa</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="subjectsBody_{{ b.id }}">
+                                            <tr><td colspan="5" class="text-center py-3 text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <div class="mt-2 text-center">
+                                        <button type="button" class="btn btn-sm fw-bold w-100" style="color: #0d6efd; border: 1px dashed #0d6efd; background: #f8f9fa;" onclick="addSubjectRow('{{ b.id }}', '{{ b.group }}')">
+                                            <i class="fa-solid fa-plus"></i> Thêm môn học
+                                        </button>
+                                    </div>
+                                    <div class="alert alert-success text-center fw-bold py-2 mt-2 mb-0" id="liveCounter_{{ b.id }}" style="font-size: 13px; border-radius: 8px;">
+                                        Tổng số con điểm Tốt: 0 / 14
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2. ĐÁNH GIÁ TUẦN -->
+                            <div class="card-custom" style="border: 1.5px solid #fd7e14;">
+                                <div class="card-custom-header" style="background-color: #fd7e14;">
+                                    <span><i class="fa-solid fa-scale-balanced"></i> Đánh giá Tuần</span>
+                                </div>
+                                <div class="bg-white p-2">
+                                    <select class="form-select fw-bold text-danger border-warning bg-light" name="rating" onchange="calculateFinalScore('{{ b.id }}', '{{ b.group }}')" {% if sc and sc.is_locked %}disabled{% endif %}>
+                                        <option value="Bình thường" {% if not sc or sc.week_rating == 'Bình thường' %}selected{% endif %}>⚪ Bình thường</option>
+                                        <option value="Tuần Khá" {% if sc and sc.week_rating == 'Tuần Khá' %}selected{% endif %}>🟡 Đạt loại: Tuần Khá</option>
+                                        <option value="Tuần Tốt" {% if sc and sc.week_rating == 'Tuần Tốt' %}selected{% endif %}>🟢 Đạt loại: Tuần Tốt</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 3. QUÉT LỖI TỰ ĐỘNG & GHI CHÚ TÊN HỌC SINH -->
+                            <div class="fw-bold mb-2 text-dark" style="font-size: 14px;"><i class="fa-solid fa-triangle-exclamation text-danger me-1"></i> 3. Quét Lỗi Vi Phạm & Ghi Chú</div>
+                            <div class="mb-4 bg-white p-2 rounded-3 border">
+                                
+                                <div class="text-muted small mb-2" style="font-size: 12px;">
+                                    <i class="fa-solid fa-circle-info text-primary"></i> Gõ lỗi cần THÊM MỚI hoặc bấm thẻ nhanh. Để ghi tên học sinh vào Sổ đen, hãy đặt trong ngoặc vuông, ví dụ: <code class="text-danger">Đi học muộn [Nguyễn Văn A]</code>
+                                </div>
+                                <div style="position: relative;">
+                                    <textarea class="form-control border-2 border-danger border-opacity-50 fw-bold text-danger mb-2" id="detailNote_{{ b.id }}" rows="3" placeholder="Gõ thêm lỗi mới kèm tên học sinh (nếu có)..." oninput="handleNoteInput('{{ b.id }}', '{{ b.group }}')" {% if sc and sc.is_locked %}disabled{% endif %}></textarea>
+                                    <div id="suggestionBox_{{ b.id }}" class="list-group" style="position: absolute; top: 100%; left: 0; z-index: 1000; width: 100%; display: none; max-height: 150px; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.15);"></div>
+                                </div>
+                             
+                                <div class="d-flex flex-wrap mt-1">
+                                    <span class="badge bg-secondary text-white mb-1 w-100 text-start" style="font-size: 10px;">Thẻ chọn nhanh:</span>
+                                    {% for cat in violations_bank %}
+                                        {% if cat.point_type == 'Điểm trừ' %}
+                                            <span class="quick-tag" onclick="appendQuickTag('{{ b.id }}', '{{ b.group }}', '{{ cat.name }}')">{{ cat.name }} (-{{ cat.penalty_points|int if cat.penalty_points%1==0 else cat.penalty_points }})</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+							<!-- [NÂNG CẤP] 4. MINH CHỨNG SỐ (CAMERA ĐA ẢNH) -->
+                            <div class="mb-4 bg-white p-2 rounded-3 border">
+                                <label class="form-label small fw-bold text-secondary mb-2"><i class="fa-solid fa-camera text-danger me-1"></i> 4. Ảnh minh chứng:</label>
+                                
+                                <!-- NÚT XEM ẢNH ĐÃ GỬI (Dành cho Sao Đỏ) -->
+                                {% if sc and sc.evidence_image %}
+                                <div class="mb-3">
+                                    <button type="button" class="btn btn-sm btn-info text-white fw-bold shadow-sm" style="border-radius: 8px;" onclick="viewEvidenceSafe(event, '{{ sc.evidence_image }}', '{{ sc.week }}')">
+                                        <i class="fa-solid fa-images"></i> Xem ảnh đã gửi lên
+                                    </button>
+                                </div>
+                                {% endif %}
+
+                                <div class="d-flex gap-2 align-items-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger fw-bold shadow-sm" onclick="document.getElementById('cameraInput_{{ b.id }}').click()" style="border-radius: 8px;">
+                                        <i class="fa-solid fa-camera"></i> Chụp thêm ảnh
+                                    </button>
+                                    <input type="file" id="cameraInput_{{ b.id }}" accept="image/*" style="display: none;" onchange="processEvidenceImage(this, 'preview_{{ b.id }}Container', 'evidenceBase64_{{ b.id }}')">
+									<input type="hidden" name="evidence_base64" id="evidenceBase64_{{ b.id }}" value="[]">
+                                </div>
+                                
+                                <div id="preview_{{ b.id }}Container" class="d-flex flex-wrap gap-2 mt-2"></div>
+                            </div>
+                            <!-- ==================================== -->
+
+                            <!-- 5. KHỐI TỔNG ĐIỂM DỰ KIẾN (LIVE) -->
+                            <div class="card-custom mb-3" style="border: 2px solid #20c997; border-radius: 12px; box-shadow: 0 4px 8px rgba(32, 201, 151, 0.15);">
+                                <div class="p-3 d-flex justify-content-between align-items-center bg-white" style="border-radius: 10px;">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center me-2" style="width: 35px; height: 35px;">
+                                            <i class="fa-solid fa-calculator"></i>
+                                        </div>
+                                        <span class="fw-bold text-dark" style="font-size: 14px;">Tổng điểm dự kiến:</span>
+                                    </div>
+                                    <span class="fw-bold fs-3 text-danger" id="live_total_score_{{ b.id }}">{{ sc.total_score if sc else 100.0 }}</span>
+                                </div>
+                            </div>
+
+							<!-- [BẢN VÁ LỖI]: KIỂM TRA KHÓA SỔ NGAY TỪ LÚC RENDER HTML -->
+                            {% if sc and sc.is_locked %}
+                                <button type="button" class="btn btn-secondary w-100 btn-submit text-white mt-1" disabled>
+                                    <i class="fa-solid fa-lock me-2"></i> ĐÃ KHÓA SỔ (CHỐT ĐIỂM)
+                                </button>
+                            {% else %}
+                                <button type="button" class="btn btn-primary w-100 btn-submit text-white mt-1" style="background-color: #0d6efd;" onclick="submitFormSafe(this, '{{ b.id }}', '{{ b.name }}', '{{ b.group }}')">
+                                    <i class="fa-solid fa-floppy-disk me-2"></i> CHUYỂN LÊN HỆ THỐNG
+                                </button>
+                            {% endif %}
+
+                            <!-- ========================================================== -->
+                            <!-- [BỔ SUNG MỚI]: VÙNG LỊCH SỬ LỖI ĐÃ GHI NHẬN TRONG TUẦN      -->
+                            <!-- ========================================================== -->
+                            <div class="mt-3 p-3 rounded-3" style="background-color: #f8f9fa; border: 1px dashed #adb5bd;">
+                                <div class="fw-bold text-secondary mb-2" style="font-size: 12px;">
+                                    <i class="fa-solid fa-clock-rotate-left me-1"></i> LỊCH SỬ LỖI ĐÃ GHI NHẬN TRONG TUẦN:
+                                </div>
+                                <div id="history_note_{{ b.id }}" class="text-dark fw-medium" style="font-size: 13px; line-height: 1.5;">
+                                    {% if sc and sc.note %}
+                                        {% for note_item in sc.note.split(';') %}
+                                            {% if note_item.strip() %}
+                                                <div class="mb-1"><i class="fa-solid fa-caret-right text-danger me-1" style="font-size: 10px;"></i> {{ note_item.strip() }}</div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted fst-italic">Chưa có vi phạm nào trong tuần.</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- ========================================================== -->
+
+                        </form>
+                        
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% elif assignment %}
+        <div class="alert alert-warning m-3 shadow-sm border-warning rounded-4" style="font-size: 14px;">
+            <i class="fa-solid fa-circle-exclamation me-1"></i> Không tìm thấy danh sách Lớp học. Bạn hãy kiểm tra lại chỗ: VỊ TRÍ CHẤM ĐIỂM.
+        </div>
+    {% endif %}
+
+    <!-- ĐÁNH GIÁ ĐỒNG ĐỘI (KPI 360) ĐÃ MỞ KHÓA -->
+    {% if assignment %}
+    <div class="px-3 mb-4 mt-4" id="teamSection">
+        <h6 class="fw-bold m-0" style="color: #6c757d; font-size: 12px; letter-spacing: 0.5px;">🤝 ĐÁNH GIÁ ĐỒNG ĐỘI CÙNG CA:</h6>
+        
+        {% if teammates %}
+            <div class="alert alert-info mt-2 border-0 shadow-sm rounded-4" style="font-size: 13px; background-color: #e0f2fe; color: #0369a1;">
+                <i class="fa-solid fa-circle-info me-1"></i> Việc đánh giá được bảo mật hoàn toàn ẩn danh, chỉ Bí thư Đoàn trường mới xem được kết quả.
+            </div>
+            
+            <div class="d-flex flex-column gap-3 mt-3">
+                {% for mate in teammates %}
+                <div class="bg-white p-3 rounded-4 shadow-sm border d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 45px; height: 45px; font-size: 18px;">
+                            {{ mate.red_star.full_name[0] if mate.red_star.full_name else 'S' }}
+                        </div>
+                        <div>
+                            <h6 class="fw-bold m-0 text-dark" style="font-size: 15px;">{{ mate.red_star.full_name }}</h6>
+                            <small class="text-muted" style="font-size: 12px;"><i class="fa-solid fa-school me-1"></i> Lớp {{ mate.red_star.branch.name if mate.red_star.branch else 'Không rõ' }}</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm text-warning bg-warning bg-opacity-10 border border-warning fw-bold rounded-pill px-3 py-2" style="transition: all 0.15s ease-in-out;"
+                            onclick="openTeamEvalModal('{{ mate.red_star.id }}', '{{ mate.red_star.full_name }}', '{{ current_week }}')">
+                        <i class="fa-solid fa-star"></i> Chấm
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- HIỂN THỊ THÔNG BÁO NẾU ĐI TRỰC MỘT MÌNH THAY VÌ ẨN ĐI -->
+            <div class="alert alert-secondary mt-3 border-0 shadow-sm rounded-4 text-center p-4" style="background-color: #e9ecef;">
+                <i class="fa-solid fa-user-slash fs-1 text-muted mb-3 opacity-50"></i>
+                <div class="text-secondary fw-bold" style="font-size: 14px;">Bạn đang trực một mình</div>
+                <div class="text-muted mt-1" style="font-size: 13px;">Không có đồng đội nào được phân công cùng Cụm và cùng Ca trực với bạn trong tuần này.</div>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- MODAL TRỰC CỔNG TỐC ĐỘ CAO CÓ TÌM KIẾM THÔNG MINH -->
+    <div class="modal fade" id="quickLogModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-bottom m-0" style="position: absolute; bottom: 0; width: 100%;">
+            <div class="modal-content border-0" style="border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);">
+                <div class="modal-header border-0 pb-0 justify-content-center position-relative">
+                    <div style="width: 40px; height: 5px; background: #dee2e6; border-radius: 10px; position: absolute; top: 12px;"></div>
+                    <h5 class="modal-title fw-bold text-dark mt-3 fs-5"><i class="fa-solid fa-bolt text-warning me-1"></i> Trực Cổng (Ghi Nhanh)</h5>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 mt-3 me-3" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <form action="/sao_do_quick_submit_form" method="POST" id="quickLogForm">
+                    <div class="modal-body pt-2 pb-4">
+                        <input type="hidden" name="week_name" value="{{ current_week }}">
+                        
+                        <!-- 1. CHỌN LỚP CÓ TÌM KIẾM -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-end mb-1">
+                                <label class="form-label small fw-bold text-secondary mb-0">1. Chọn Lớp vi phạm:</label>
+                            </div>
+                            <input type="hidden" name="branch_id" id="quickSelectedBranchId" required>
+                            
+                            <!-- Thanh tìm kiếm lớp -->
+                            <input type="text" class="form-control form-control-sm mb-2" id="searchClassInput" placeholder="🔍 Gõ nhanh tên lớp (VD: 10A1)..." onkeyup="filterQuickClasses()" style="border-radius: 8px; background-color: #f8f9fa;">
+
+                            <div class="p-2 mb-2 rounded-3 text-center fw-bold text-danger border border-danger border-opacity-50 bg-light" id="quickSelectedBranchLabel" style="font-size: 14px;">
+                                ⚠️ Chưa chọn lớp nào
+                            </div>
+
+                            <div class="p-2 bg-white border rounded-3" style="max-height: 160px; overflow-y: auto;">
+                                <div class="d-flex flex-wrap gap-1 justify-content-start" id="quickClassGrid">
+                                    {% if all_branches %}
+                                        {% for b in all_branches %}
+                                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold px-2 py-1 class-quick-btn" 
+                                                data-id="{{ b.id }}" data-name="{{ b.name }}" onclick="selectQuickClass(this)"
+                                                style="border-radius: 6px; font-size: 12px; min-width: 50px;">
+                                            {{ b.name }}
+                                        </button>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-muted small text-center py-2">Không có dữ liệu lớp học</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. TÊN HỌC SINH (TỰ ĐỘNG VIẾT HOA) -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary mb-1">2. Tên học sinh vi phạm:</label>
+                            <input type="text" class="form-control fw-bold" id="quickName" required placeholder="Gõ tên học sinh..." style="font-size: 16px; height: 45px;" autocomplete="off" name="student_name" oninput="autoCapitalize(this); checkQuickFormValidity();">
+                        </div>
+
+                        <!-- 3. CHỌN NHANH LỖI -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary mb-2">3. Chạm nhanh vào Lỗi:</label>
+                            <div class="d-flex flex-wrap gap-1" style="max-height: 120px; overflow-y: auto;">
+                                {% for cat in violations_bank %}
+                                {% if cat.point_type == 'Điểm trừ' %}
+                                <div class="quick-tag modal-quick-tag px-2 py-1" data-id="{{ cat.id }}" onclick="selectQuickViolation(this)" style="font-size: 12px;">
+                                    {{ cat.name }} (-{{ cat.penalty_points|int if cat.penalty_points%1==0 else cat.penalty_points }})
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <input type="hidden" name="violation_id" id="hiddenQuickViolationId" required>
+
+						<!-- [NÂNG CẤP] 4. MINH CHỨNG SỐ DÀNH CHO GHI NHANH -->
+                        <div class="mb-4 bg-light p-2 rounded-3 border">
+                            <label class="form-label small fw-bold text-secondary mb-2">4. Ảnh minh chứng (Tùy chọn):</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button type="button" class="btn btn-outline-danger fw-bold bg-white" onclick="document.getElementById('quickCameraInput').click()" style="border-radius: 10px;">
+                                    <i class="fa-regular fa-image fs-5"></i> Chọn / Chụp ảnh
+                                </button>
+                                <!-- Đã bỏ thuộc tính capture="environment" để cho phép chọn ảnh từ thư viện -->
+                                <input type="file" id="quickCameraInput" accept="image/*" style="display: none;" onchange="processEvidenceImage(this, 'quickPreviewContainer', 'quickEvidenceBase64')">
+                                <input type="hidden" name="evidence_base64" id="quickEvidenceBase64" value="[]">
+                            </div>
+                            <div id="quickPreviewContainer" class="d-flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+                        <!-- ============================================== -->
+
+                        <!-- NÚT GỬI VÀ NÚT ĐÓNG DƯỚI CÙNG DÀNH CHO ĐIỆN THOẠI -->
+                        <div class="d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-light fw-bold text-secondary shadow-sm" data-bs-dismiss="modal" style="height: 50px; border-radius: 14px; width: 35%; border: 1px solid #ced4da;">
+                                ĐÓNG LẠI
+                            </button>
+                            <button type="submit" class="btn btn-secondary fw-bold btn-submit flex-grow-1 shadow-sm" id="btnSubmitQuickLog" style="height: 50px; border-radius: 14px;" disabled>
+                                <i class="fa-solid fa-lock me-1"></i> ĐIỀN THÔNG TIN
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ĐÁNH GIÁ ĐỒNG ĐỘI TRƯỢT LÊN -->
+    <div class="modal fade" id="evalTeamModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-bottom m-0" style="position: absolute; bottom: 0; width: 100%;">
+            <div class="modal-content border-0" style="border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);">
+                <div class="modal-header border-0 pb-0 justify-content-center position-relative">
+                    <div style="width: 40px; height: 5px; background: #dee2e6; border-radius: 10px; position: absolute; top: 12px;"></div>
+                    <h5 class="modal-title fw-bold text-dark mt-3 fs-5"><i class="fa-solid fa-star text-warning me-1"></i> Nhận xét đồng đội</h5>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 mt-3 me-3" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body pt-3 pb-4" style="max-height: 75vh; overflow-y: auto;">
+                    <div class="text-center mb-3">
+                        <span class="badge bg-primary px-3 py-2 rounded-pill fs-6 shadow-sm" id="evalTeamStarName">...</span>
+                    </div>
+
+                    <form id="evalTeamForm">
+                        <input type="hidden" id="evalTeamStarId">
+                        <input type="hidden" id="evalTeamWeek">
+                        <input type="hidden" name="score_cong_tam" value="5">
+
+                        <div class="mb-3 p-3 bg-light rounded-4 border">
+                            <label class="fw-bold text-primary mb-2 small"><i class="fa-regular fa-clock me-1"></i> Giờ giấc trực:</label>
+                            <select class="form-select border-0 shadow-sm fw-bold text-dark" name="score_gio_giac">
+                                <option value="5">🟢 Đi sớm, cực kỳ đúng giờ (5đ)</option>
+                                <option value="3">🟡 Có muộn một chút nhưng vẫn làm (3đ)</option>
+                                <option value="1">🔴 Đi rất muộn hoặc vắng mặt (1đ)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 p-3 bg-light rounded-4 border">
+                            <label class="fw-bold text-primary mb-2 small"><i class="fa-solid fa-shirt me-1"></i> Tác phong đồng phục:</label>
+                            <select class="form-select border-0 shadow-sm fw-bold text-dark" name="score_tac_phong">
+                                <option value="5">🟢 Chỉnh tề, đeo băng/thẻ đầy đủ (5đ)</option>
+                                <option value="3">🟡 Đúng quy định nhưng quên thẻ (3đ)</option>
+                                <option value="1">🔴 Vi phạm nội quy đồng phục (1đ)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 p-3 bg-light rounded-4 border">
+                            <label class="fw-bold text-primary mb-2 small"><i class="fa-regular fa-face-smile me-1"></i> Thái độ làm việc:</label>
+                            <select class="form-select border-0 shadow-sm fw-bold text-dark" name="score_thai_do">
+                                <option value="5">🟢 Vui vẻ, tích cực, hòa nhã (5đ)</option>
+                                <option value="3">🟡 Bình thường, đôi lúc lười (3đ)</option>
+                                <option value="1">🔴 Thái độ kém, hay cáu gắt (1đ)</option>
+                            </select>
+                        </div>
+
+                        <button type="button" class="btn btn-primary w-100 fw-bold btn-submit shadow-sm" id="btnSubmitTeamEval" onclick="submitTeamEvaluation()" style="height: 50px; border-radius: 14px;">
+                            <i class="fa-solid fa-paper-plane me-1"></i> GỬI ĐÁNH GIÁ ẨN DANH
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ĐỔI MẬT KHẨU CHO SAO ĐỎ -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-bottom m-0" style="position: absolute; bottom: 0; width: 100%;">
+            <div class="modal-content border-0" style="border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);">
+                <div class="modal-header border-0 pb-0 justify-content-center position-relative">
+                    <div style="width: 40px; height: 5px; background: #dee2e6; border-radius: 10px; position: absolute; top: 12px;"></div>
+                    <h5 class="modal-title fw-bold text-dark mt-3 fs-5"><i class="fa-solid fa-user-lock text-primary me-1"></i> Đổi Mật Khẩu</h5>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 mt-3 me-3" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <form id="changePwdForm" action="/change-password" method="POST" onsubmit="return validatePasswordMatch(event)">
+                    <div class="modal-body pt-3 pb-4">
+                        <input type="hidden" name="login_id" value="{{ session.get('username') }}">
+                        
+                        <div class="alert alert-warning bg-warning bg-opacity-10 border-0 text-dark small rounded-3 mb-3 fw-bold">
+                            <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Lưu ý: Đổi mật khẩu thành công, hệ thống sẽ yêu cầu đăng nhập lại.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary mb-1">Mật khẩu mới:</label>
+                            <input type="password" class="form-control fw-bold" name="new_password" required placeholder="Nhập ít nhất 3 ký tự" minlength="3" style="background-color: #f8f9fa; height: 45px; border-radius: 10px;">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary mb-1">Xác nhận mật khẩu mới:</label>
+                            <input type="password" class="form-control fw-bold" name="confirm_password" required placeholder="Nhập lại mật khẩu mới" minlength="3" style="background-color: #f8f9fa; height: 45px; border-radius: 10px;">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold btn-submit shadow-sm" id="btnSubmitChangePwd" style="height: 50px; border-radius: 14px;">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> LƯU MẬT KHẨU MỚI
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAV MỞ KHÓA LUÔN HIỆN NÚT -->
+    <div class="bottom-nav">
+        <a href="#homeSection" class="nav-item active" onclick="switchNav(this)"><i class="fa-solid fa-house"></i>Trang chủ</a>
+        <a href="#taskSection" class="nav-item" onclick="switchNav(this)"><i class="fa-solid fa-clipboard-list"></i>Chấm điểm</a>
+        {% if assignment %}
+        <a href="#teamSection" class="nav-item" onclick="switchNav(this)"><i class="fa-solid fa-users"></i>Đồng đội</a>
+        {% endif %}
+        <a href="/logout" class="nav-item" onclick="return confirm('Bạn chắc chắn muốn đăng xuất?');"><i class="fa-solid fa-right-from-bracket"></i>Đăng xuất</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const BAREM = { d10: 5, d9: 3, d8: 1, kha: 20, tot: 30, maxMon: 4, maxTot: 14, base: 100 };
+        const DEFAULT_SUBJECTS = ["Toán", "Ngữ Văn", "Ngoại Ngữ", "Vật Lý", "Hóa Học", "Sinh Học", "Lịch Sử", "Địa Lí", "GDCD", "Tin Học", "Công Nghệ", "GDQP", "Thể Dục"];
+        
+        // VÁ LỖI XUNG ĐỘT NGOẶC KÉP TRONG JINJA
+        const violationBank = [
+            {% for cat in violations_bank %}
+            { id: {{ cat.id }}, name: `{{ cat.name | replace('`', '\\`') }}`, points: {{ cat.penalty_points }}, type: `{{ cat.point_type }}` },
+            {% endfor %}
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            {% if target_classes %}
+                {% for b in target_classes %}
+                    loadRawScoresSilent('{{ current_week }}', {{ b.id }}, '{{ b.group }}');
+                    handleNoteInput('{{ b.id }}', '{{ b.group }}');
+                {% endfor %}
+            {% endif %}
+            
+            // =========================================================
+            // [KÍCH HOẠT OFFLINE MODE MỚI THÊM VÀO]
+            // =========================================================
+            window.addEventListener('online', handleNetworkChange);
+            window.addEventListener('offline', handleNetworkChange);
+            handleNetworkChange();
+            updatePendingUI();
+
+            // Chặn Form Trực Cổng Ghi Nhanh đẩy vào Giỏ chờ 15 phút
+            const quickLogForm = document.getElementById('quickLogForm');
+            if (quickLogForm) {
+                quickLogForm.addEventListener('submit', function(e) {
+                    e.preventDefault(); // LUÔN CHẶN NỘP TRỰC TIẾP
+                    
+                    const formData = new FormData(quickLogForm);
+                    const dataObj = {};
+                    formData.forEach((value, key) => { dataObj[key] = value });
+                    
+                    // Lưu vào Giỏ chờ ân hạn
+                    saveToOfflineStorage(quickLogForm.action, dataObj, false, "Ghi nhanh lỗi: " + (dataObj['student_name'] || "Khuyết danh"));
+                    
+                    showNativeToast("Đã đưa vào Giỏ chờ. Bạn có 15 phút để chỉnh sửa!", "success");
+                    
+                    try { bootstrap.Modal.getInstance(document.getElementById('quickLogModal')).hide(); } catch(err) {}
+                    
+                    // Reset Form
+                    quickLogForm.reset();
+                    document.getElementById('quickSelectedBranchLabel').innerHTML = '⚠️ Chưa chọn lớp nào';
+                    document.getElementById('quickSelectedBranchLabel').className = "p-2 mb-2 rounded-3 text-center fw-bold text-danger border border-danger border-opacity-50 bg-light";
+                    document.querySelectorAll('.class-quick-btn').forEach(btn => {
+                        btn.classList.remove('btn-primary', 'text-white');
+                        btn.classList.add('btn-outline-primary');
+                    });
+                    document.querySelectorAll('.modal-quick-tag').forEach(tag => tag.classList.remove('active'));
+                    
+                    // XÓA ẢNH MINH CHỨNG TRONG FORM GHI NHANH SAU KHI NỘP
+                    clearEvidence('quickCameraInput', 'quickPreviewContainer', 'quickEvidenceBase64');
+                    
+                    checkQuickFormValidity();
+                });
+            }
+        });
+
+        async function loadRawScoresSilent(weekName, branchId, branchGroup) {
+            try {
+                let res = await fetch(`/api/raw_scores/${weekName}/${branchId}`);
+                let json = await res.json();
+                
+                if (json.data && json.data.length > 0) {
+                    renderSubjectsTable(branchId, branchGroup, json.data);
+                } else {
+                    renderSubjectsTable(branchId, branchGroup, []);
+                    addSubjectRow(branchId, branchGroup, "", 0, 0, 0);
+                }
+            } catch (e) {
+                renderSubjectsTable(branchId, branchGroup, []);
+                addSubjectRow(branchId, branchGroup, "", 0, 0, 0);
+            }
+            calculateFinalScore(branchId, branchGroup);
+        }
+
+        function renderSubjectsTable(branchId, branchGroup, subjects) {
+            const tbody = document.getElementById(`subjectsBody_${branchId}`);
+            if(!tbody) return;
+            tbody.innerHTML = "";
+            subjects.forEach(item => addSubjectRow(branchId, branchGroup, item.subj, item.c10, item.c9, item.c8));
+        }
+
+        function addSubjectRow(branchId, branchGroup, subj = "", c10 = 0, c9 = 0, c8 = 0) {
+            const tbody = document.getElementById(`subjectsBody_${branchId}`);
+            if(!tbody) return;
+            const tr = document.createElement('tr');
+            
+            const isGroup1 = branchGroup.includes("1");
+            const c8Input = isGroup1 
+                ? `<input type="number" class="form-control input-score text-secondary border-0 bg-transparent sub-c8" value="0" readonly title="Nhóm 1 Không có Đ.8">`
+                : `<input type="number" class="form-control input-score text-secondary border-secondary border-opacity-50 sub-c8" value="${c8}" min="0" oninput="calculateFinalScore('${branchId}', '${branchGroup}')">`;
+
+            tr.innerHTML = `
+                <td><input type="text" class="form-control input-subj sub-name-input" value="${subj}" placeholder="Tên môn..."></td>
+                <td><input type="number" class="form-control input-score text-danger border-danger border-opacity-50 sub-c10" value="${c10}" min="0" oninput="calculateFinalScore('${branchId}', '${branchGroup}')"></td>
+                <td><input type="number" class="form-control input-score text-primary border-primary border-opacity-50 sub-c9" value="${c9}" min="0" oninput="calculateFinalScore('${branchId}', '${branchGroup}')"></td>
+                <td>${c8Input}</td>
+                <td class="text-center"><button type="button" class="btn btn-sm text-danger px-1" onclick="this.parentElement.parentElement.remove(); calculateFinalScore('${branchId}', '${branchGroup}');"><i class="fa-solid fa-trash-can fs-5"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function appendQuickTag(branchId, branchGroup, catName) {
+            triggerHaptic(20);
+            let input = document.getElementById(`detailNote_${branchId}`);
+            if(!input) return;
+            let val = input.value.trim();
+            let appendText = `${catName} x1`;
+            input.value = val ? `${val}, ${appendText}` : appendText;
+            handleNoteInput(branchId, branchGroup);
+        }
+
+        function handleNoteInput(branchId, branchGroup) {
+            let noteInput = document.getElementById(`detailNote_${branchId}`);
+            let oldNoteEl = document.getElementById(`old_note_${branchId}`); 
+            if(!noteInput) return;
+            
+            let currentText = noteInput.value;
+            let oldServerNote = oldNoteEl ? oldNoteEl.value.trim() : "";
+            
+            // Loại bỏ hoàn toàn chữ cũ để tính toán tiền phạt chỉ cho các LỖI MỚI gõ thêm
+            let newAddedText = currentText;
+            if (oldServerNote && currentText.includes(oldServerNote)) {
+                newAddedText = currentText.replace(oldServerNote, "").trim();
+                if (newAddedText.startsWith(";") || newAddedText.startsWith(",")) {
+                    newAddedText = newAddedText.substring(1).trim();
+                }
+            }
+            if (currentText.trim() === oldServerNote) newAddedText = "";
+
+            let penalty = 0;
+            const suggestionBox = document.getElementById(`suggestionBox_${branchId}`);
+            
+            const parts = currentText.split(',');
+            const searchTerm = parts[parts.length - 1].trim().toLowerCase();
+            
+            if (searchTerm && suggestionBox) {
+                const matches = violationBank.filter(cat => cat.name.toLowerCase().includes(searchTerm) && cat.type !== 'Điểm cộng');
+                if (matches.length > 0) {
+                    suggestionBox.innerHTML = '';
+                    suggestionBox.style.display = 'block';
+                    matches.forEach(match => {
+                        let btn = document.createElement('a');
+                        btn.className = 'list-group-item list-group-item-action py-2 text-danger fw-bold';
+                        btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${match.name} <span class="badge bg-danger float-end">-${match.points}đ</span>`;
+                        btn.onclick = () => { appendQuickTag(branchId, branchGroup, match.name); suggestionBox.style.display = 'none'; };
+                        suggestionBox.appendChild(btn);
+                    });
+                } else { suggestionBox.style.display = 'none'; }
+            } else if(suggestionBox) { suggestionBox.style.display = 'none'; }
+
+            // Chỉ tính điểm trừ tạm tính (Live Preview) trên MẢNG CHỮ MỚI
+            if (newAddedText) {
+                let newParts = newAddedText.split(/[,;]/);
+                newParts.forEach(part => {
+                    let p = part.toLowerCase();
+                    violationBank.forEach(cat => {
+                        let catName = cat.name.toLowerCase();
+						if (catName.includes('ẢNH MINH CHỨNG')) return;
+                        if (p.includes(catName) && cat.type !== 'Điểm cộng') {
+                            let regex = new RegExp(catName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "\\s*(?::|-|x|,)?\\s*(\\d+)", "i");
+                            let match = p.match(regex);
+                            let qty = match ? parseInt(match[1]) : 1;
+                            penalty += (cat.points * qty);
+                        }
+                    });
+                });
+            }
+            
+            let previewLabel = document.getElementById(`autoPenaltyPreview_${branchId}`);
+            if(previewLabel) {
+                previewLabel.setAttribute('data-penalty', penalty);
+            }
+            
+            calculateFinalScore(branchId, branchGroup);
+        }
+
+        function calculateFinalScore(branchId, branchGroup) {
+            const tbody = document.getElementById(`subjectsBody_${branchId}`);
+            if(!tbody) return;
+
+            let total10 = 0, total9 = 0, total8 = 0;
+            tbody.querySelectorAll('tr').forEach(row => {
+                let c10Input = row.querySelector('.sub-c10');
+                let c9Input = row.querySelector('.sub-c9');
+                let c8Input = row.querySelector('.sub-c8');
+                
+                let c10 = c10Input ? parseInt(c10Input.value) || 0 : 0;
+                let c9 = c9Input ? parseInt(c9Input.value) || 0 : 0;
+                let c8 = c8Input ? parseInt(c8Input.value) || 0 : 0;
+                if (branchGroup.includes("1")) c8 = 0;
+
+                let k10 = Math.min(c10, BAREM.maxMon);
+                let k9 = Math.min(c9, BAREM.maxMon - k10);
+                let k8 = Math.min(c8, BAREM.maxMon - k10 - k9);
+
+                total10 += k10; total9 += k9; total8 += k8;
+            });
+
+            let sum = total10 + total9 + total8;
+            const counterDiv = document.getElementById(`liveCounter_${branchId}`);
+            
+            if (sum > BAREM.maxTot) {
+                let excess = sum - BAREM.maxTot;
+                let cut8 = Math.min(total8, excess); total8 -= cut8; excess -= cut8;
+                if (excess > 0) { let cut9 = Math.min(total9, excess); total9 -= cut9; excess -= cut9; }
+                if (excess > 0) { total10 -= excess; }
+                
+                if(counterDiv) {
+                    counterDiv.innerHTML = `Tổng số con điểm Tốt: ${sum} / 14 (VƯỢT TRẦN)`;
+                    counterDiv.className = "alert text-center fw-bold py-2 mt-2 mb-0 alert-danger";
+                }
+            } else {
+                if(counterDiv) {
+                    counterDiv.innerHTML = `Tổng số con điểm Tốt: ${sum} / 14`;
+                    counterDiv.className = "alert text-center fw-bold py-2 mt-2 mb-0 alert-success";
+                }
+            }
+
+            let currentHocTap = (total10 * BAREM.d10) + (total9 * BAREM.d9) + (total8 * BAREM.d8);
+
+            let ratingSelect = document.querySelector(`#form_submit_${branchId} select[name="rating"]`);
+            let currentRatingScore = 0;
+            if (ratingSelect) {
+                if (ratingSelect.value === "Tuần Tốt") currentRatingScore = BAREM.tot;
+                else if (ratingSelect.value === "Tuần Khá") currentRatingScore = BAREM.kha;
+            }
+
+			let oldC10 = parseInt(document.getElementById(`old_c10_${branchId}`).value) || 0;
+            let oldC9 = parseInt(document.getElementById(`old_c9_${branchId}`).value) || 0;
+            let oldC8 = parseInt(document.getElementById(`old_c8_${branchId}`).value) || 0;
+            if (branchGroup.includes("1")) oldC8 = 0;
+
+            // --- [BẢN VÁ LỖI 1]: KHÔNG XÉN TRẦN LẠI ĐIỂM CŨ ---
+            // Dữ liệu cũ từ Database tải lên đã là tổng chuẩn xác, tính thẳng ra điểm gốc luôn!
+            let oldHocTap = (oldC10 * BAREM.d10) + (oldC9 * BAREM.d9) + (oldC8 * BAREM.d8);
+            // --------------------------------------------------
+
+            let oldRatingVal = document.getElementById(`old_rating_${branchId}`).value;
+            let oldRatingScore = 0;
+            if (oldRatingVal === "Tuần Tốt") oldRatingScore = BAREM.tot;
+            else if (oldRatingVal === "Tuần Khá") oldRatingScore = BAREM.kha;
+
+            let deltaHocTap = currentHocTap - oldHocTap;
+            let deltaRating = currentRatingScore - oldRatingScore;
+
+            let previewLabel = document.getElementById(`autoPenaltyPreview_${branchId}`);
+            let penaltyAttr = previewLabel ? previewLabel.getAttribute('data-penalty') : '0';
+            let newPenalty = parseFloat(penaltyAttr) || 0.0; 
+
+            let oldTotalScoreEl = document.getElementById(`old_total_score_${branchId}`);
+            let baseTotalScore = oldTotalScoreEl ? parseFloat(oldTotalScoreEl.value) || 100.0 : 100.0;
+
+            let finalScore = baseTotalScore + deltaHocTap + deltaRating - newPenalty;
+            
+            let scoreDisplay = document.getElementById(`live_total_score_${branchId}`);
+            if(scoreDisplay) {
+                scoreDisplay.innerText = finalScore.toFixed(1) + " đ";
+            }
+        } 
+
+        function submitFormSafe(btnElement, branchId, branchName, branchGroup) {
+            triggerHaptic(50);
+            if (confirm('Xác nhận Chấm điểm cho lớp ' + branchName + '? Dữ liệu sẽ được lưu vào Giỏ chờ 15 phút để bạn có thể Hoàn tác.')) {
+                
+				// ========================================================
+                // [BỔ SUNG CHỐT CHẶN]: ÉP BUỘC GHI CHÚ KHI CÓ ẢNH
+                // ========================================================
+                let evidenceInput = document.getElementById(`evidenceBase64_${branchId}`);
+                let noteInput = document.getElementById(`detailNote_${branchId}`);
+                
+                if (evidenceInput && evidenceInput.value !== "") {
+                    // Nếu có ảnh mà ô ghi chú Sổ đen trống trơn
+                    if (!noteInput || noteInput.value.trim() === "") {
+                        showNativeToast("⚠️ BẠN QUÊN CHÚ THÍCH: Vui lòng gõ rõ nội dung vi phạm vào ô Sổ đen để giải thích cho bức ảnh này!", "error");
+                        // Rung cảnh báo lỗi mạnh
+                        if (navigator.vibrate) { navigator.vibrate([100, 50, 100]); }
+                        return; // Chặn đứng lệnh nộp
+                    }
+                }
+                // Thu thập điểm Sổ đầu bài
+                const tbody = document.getElementById(`subjectsBody_${branchId}`);
+                let rawList = []; 
+                let rawTotal10 = 0, rawTotal9 = 0, rawTotal8 = 0;
+
+                if(tbody) {
+                    tbody.querySelectorAll('tr').forEach(row => {
+                        let subj = row.querySelector('.sub-name-input').value.trim();
+                        if (subj) {
+                            let c10 = parseInt(row.querySelector('.sub-c10').value) || 0;
+                            let c9 = parseInt(row.querySelector('.sub-c9').value) || 0;
+                            let c8 = parseInt(row.querySelector('.sub-c8').value) || 0;
+                            if (branchGroup.includes("1")) c8 = 0;
+
+                            let k10 = Math.min(c10, BAREM.maxMon);
+                            let k9 = Math.min(c9, BAREM.maxMon - k10);
+                            let k8 = Math.min(c8, BAREM.maxMon - k10 - k9);
+
+                            rawList.push({ subj: subj, c10: k10, c9: k9, c8: k8 });
+                            rawTotal10 += k10; rawTotal9 += k9; rawTotal8 += k8;
+                        }
+                    });
+                }
+
+                let sum = rawTotal10 + rawTotal9 + rawTotal8;
+                if (sum > BAREM.maxTot) {
+                    let excess = sum - BAREM.maxTot;
+                    let cut8 = Math.min(rawTotal8, excess); rawTotal8 -= cut8; excess -= cut8;
+                    if (excess > 0) { let cut9 = Math.min(rawTotal9, excess); rawTotal9 -= cut9; excess -= cut9; }
+                    if (excess > 0) { rawTotal10 -= excess; }
+                }
+
+                document.getElementById(`raw_scores_json_${branchId}`).value = JSON.stringify(rawList);
+                document.getElementById(`hidden_c10_${branchId}`).value = rawTotal10;
+                document.getElementById(`hidden_c9_${branchId}`).value = rawTotal9;
+                document.getElementById(`hidden_c8_${branchId}`).value = rawTotal8;
+
+                // Tách lọc ghi chú
+                let manualInputEl = document.getElementById(`detailNote_${branchId}`);
+                let oldNoteEl = document.getElementById(`old_note_${branchId}`);
+                
+                let currentText = manualInputEl ? manualInputEl.value.trim() : "";
+                let oldServerNote = oldNoteEl ? oldNoteEl.value.trim() : "";
+                
+                let newAddedText = currentText;
+                if (oldServerNote && currentText.includes(oldServerNote)) {
+                    newAddedText = currentText.replace(oldServerNote, "").trim();
+                    if (newAddedText.startsWith(";") || newAddedText.startsWith(",")) {
+                        newAddedText = newAddedText.substring(1).trim();
+                    }
+                }
+                if (currentText.trim() === oldServerNote) newAddedText = "";
+
+                let violCounts = {}; let studentNames = {}; let manualNotes = [];
+                
+                if (newAddedText) {
+                    let parts = newAddedText.split(/[,;]/);
+                    parts.forEach(part => {
+                        let p = part.trim();
+                        if (!p) return;
+                        let matched = false;
+                        violationBank.forEach(cat => {
+                            let catName = cat.name.toLowerCase();
+							if (catName.includes('ẢNH MINH CHỨNG')) return;
+                            if (p.toLowerCase().includes(catName) && cat.type !== 'Điểm cộng') {
+                                matched = true;
+                                let qtyMatch = p.match(/(?::|-|x|\s)\s*(\d+)/i);
+                                let qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                                let nameMatch = p.match(/\[(.*?)\]|\((.*?)\)/);
+                                let sName = nameMatch ? (nameMatch[1] || nameMatch[2]).trim() : '';
+
+                                if (!violCounts[cat.id]) { violCounts[cat.id] = 0; studentNames[cat.id] = []; }
+                                violCounts[cat.id] += qty;
+                                if (sName) studentNames[cat.id].push(sName);
+                            }
+                        });
+						
+                        if (!matched) manualNotes.push(p);
+                    });
+                }
+
+                violationBank.forEach(cat => {
+                    let qtyInput = document.getElementById(`viol_${branchId}_${cat.id}`);
+                    let stuInput = document.getElementById(`student_${branchId}_${cat.id}`);
+                    if (qtyInput) {
+                        if (violCounts[cat.id]) {
+                            qtyInput.value = violCounts[cat.id];
+                            if (stuInput) stuInput.value = studentNames[cat.id].join(', ');
+                        } else {
+                            qtyInput.value = 0;
+                            if (stuInput) stuInput.value = '';
+                        }
+                    }
+                });
+                let manualInput = document.getElementById(`manual_note_${branchId}`);
+                if(manualInput) manualInput.value = manualNotes.join(', ');
+
+                // ========================================================
+                // [CƠ CHẾ MỚI]: BỎ HÀNH ĐỘNG SUBMIT CHUẨN, ÉP VÀO GIỎ CHỜ
+                // ========================================================
+                let targetForm = document.getElementById('form_submit_' + branchId);
+                const formData = new FormData(targetForm);
+                const dataObj = {};
+                formData.forEach((value, key) => { dataObj[key] = value });
+                
+                // Đưa vào Giỏ Chờ
+                saveToOfflineStorage(targetForm.action, dataObj, false, `Chấm điểm lớp ${branchName}`);
+                
+                showNativeToast(`Đã đưa vào Giỏ chờ. Bạn có 15 phút để chỉnh sửa!`, "success");
+                
+                // Đóng giao diện lớp đó lại và thêm nhãn "Chờ nộp"
+                const headingBtn = document.querySelector(`#heading${branchId} .accordion-button`);
+                if(headingBtn && !headingBtn.innerHTML.includes('Chờ nộp')) {
+                    headingBtn.innerHTML += `<span class="badge bg-warning text-dark ms-auto me-2 pending-badge" style="font-size: 11px;"><i class="fa-regular fa-clock"></i> Chờ nộp</span>`;
+                }
+                
+                let collapseEl = document.getElementById(`collapse${branchId}`);
+                if(collapseEl) {
+                    let bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl);
+                    bsCollapse.hide();
+                }
+                
+                // Khôi phục nút bấm để có thể sửa lại sau khi undo
+                btnElement.disabled = false;
+                btnElement.classList.replace('btn-secondary', 'btn-primary');
+                btnElement.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> CHUYỂN LÊN HỆ THỐNG';
+            }
+        }
+
+        // =========================================================
+        // JS ĐÁNH GIÁ ĐỒNG ĐỘI
+        // =========================================================
+        function openTeamEvalModal(starId, starName, weekName) {
+            triggerHaptic(20);
+            document.getElementById('evalTeamStarId').value = starId;
+            document.getElementById('evalTeamStarName').innerText = starName;
+            document.getElementById('evalTeamWeek').value = weekName;
+            
+            document.getElementById('evalTeamForm').reset();
+            var myModal = new bootstrap.Modal(document.getElementById('evalTeamModal'));
+            myModal.show();
+        }
+
+        async function submitTeamEvaluation() {
+            triggerHaptic(40);
+            const btn = document.getElementById('btnSubmitTeamEval');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Đang xử lý...';
+
+            const payload = {
+                evaluatee_id: document.getElementById('evalTeamStarId').value,
+                week_name: document.getElementById('evalTeamWeek').value,
+                score_gio_giac: document.querySelector('#evalTeamForm select[name="score_gio_giac"]').value,
+                score_tac_phong: document.querySelector('#evalTeamForm select[name="score_tac_phong"]').value,
+                score_thai_do: document.querySelector('#evalTeamForm select[name="score_thai_do"]').value,
+                score_cong_tam: document.querySelector('#evalTeamForm input[name="score_cong_tam"]').value,
+                comment: "" 
+            };
+
+            // ========================================================
+            // [BỔ SUNG VÀO GIỎ CHỜ CHO FORM ĐÁNH GIÁ ĐỒNG ĐỘI]
+            // ========================================================
+            saveToOfflineStorage('/api/submit_evaluation', payload, true, "Đánh giá đồng đội"); 
+            showNativeToast("Phiếu đánh giá đã được đưa vào Giỏ chờ 15 phút.", "success");
+            bootstrap.Modal.getInstance(document.getElementById('evalTeamModal')).hide();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> GỬI ĐÁNH GIÁ ẨN DANH';
+            return;
+        }
+
+        // =========================================================
+        // HÀM TIỆN ÍCH CHUNG VÀ TRỰC CỔNG GHI NHANH
+        // =========================================================
+        function triggerHaptic(duration = 40) { 
+            if (navigator.vibrate) { navigator.vibrate(duration); } 
+        }
+
+        function showNativeToast(msg, type) { 
+            triggerHaptic([50, 50, 50]); 
+            const container = document.getElementById('toastContainer'); 
+            const toast = document.createElement('div'); 
+            toast.className = `native-toast ${type === 'error' ? 'error' : ''}`; 
+            toast.innerHTML = (type === 'error' ? '<i class="fa-solid fa-circle-exclamation fs-5"></i>' : '<i class="fa-solid fa-circle-check fs-5"></i>') + ` <span>${msg}</span>`; 
+            container.appendChild(toast); 
+            setTimeout(() => { toast.style.animation = 'slideUpOut 0.4s forwards'; setTimeout(() => toast.remove(), 400); }, 2500); 
+        }
+
+        function switchNav(element) { 
+            triggerHaptic(20); 
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+            element.classList.add('active'); 
+        }
+
+		// KHỞI TẠO SERVICE WORKER & LẮNG NGHE ĐỒNG BỘ NGẦM (OFFLINE-FIRST)
+        if ('serviceWorker' in navigator) { 
+            window.addEventListener('load', () => { 
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('✅ PWA & Offline Mode đã sẵn sàng!');
+                }).catch(err => console.log('❌ Lỗi PWA:', err)); 
+            }); 
+            
+            // Lắng nghe tín hiệu "CÓ MẠNG" từ Service Worker phát ra từ Background Sync
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.type === 'NETWORK_RESTORED_FLUSH_QUEUE') {
+                    console.log("⚡ Nhận lệnh từ hệ thống ngầm: Có sóng mạng, đang tự động nộp Giỏ chờ...");
+                    autoSyncOfflineData(); // Gọi hàm xả kho dữ liệu
+                }
+            });
+        }
+
+        function openChangePasswordModal() {
+            triggerHaptic(20);
+            document.getElementById('changePwdForm').reset();
+            var myModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+            myModal.show();
+        }
+
+        function validatePasswordMatch(event) {
+            const newPwd = document.querySelector('#changePwdForm input[name="new_password"]').value;
+            const confirmPwd = document.querySelector('#changePwdForm input[name="confirm_password"]').value;
+            
+            if (newPwd.length < 3) {
+                event.preventDefault();
+                showNativeToast("Mật khẩu phải có ít nhất 3 ký tự!", "error");
+                return false;
+            }
+            
+            if (newPwd !== confirmPwd) {
+                event.preventDefault();
+                showNativeToast("Mật khẩu xác nhận không khớp!", "error");
+                return false;
+            }
+            
+            triggerHaptic(40);
+            let btn = document.getElementById('btnSubmitChangePwd'); 
+            btn.disabled = true; 
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> ĐANG LƯU...';
+            return true;
+        }
+
+        function filterQuickClasses() {
+            let input = document.getElementById('searchClassInput').value.toUpperCase();
+            let buttons = document.querySelectorAll('.class-quick-btn');
+            buttons.forEach(btn => {
+                let txtValue = btn.textContent || btn.innerText;
+                if (txtValue.toUpperCase().indexOf(input) > -1) {
+                    btn.style.display = "";
+                } else {
+                    btn.style.display = "none";
+                }
+            });
+        }
+
+        function autoCapitalize(inputElement) {
+            let words = inputElement.value.split(' ');
+            for (let i = 0; i < words.length; i++) {
+                if (words[i].length > 0) {
+                    words[i] = words[i][0].toUpperCase() + words[i].substr(1).toLowerCase();
+                }
+            }
+            inputElement.value = words.join(' ');
+        }
+
+        function checkQuickFormValidity() {
+            let branchId = document.getElementById('quickSelectedBranchId').value;
+            let violId = document.getElementById('hiddenQuickViolationId').value;
+            let btnSubmit = document.getElementById('btnSubmitQuickLog');
+
+            if (branchId && violId) {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('btn-secondary');
+                btnSubmit.classList.add('btn-danger');
+                btnSubmit.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> GỬI LỖI VÀO SỔ ĐEN';
+            } else {
+                btnSubmit.disabled = true;
+                btnSubmit.classList.remove('btn-danger');
+                btnSubmit.classList.add('btn-secondary');
+                btnSubmit.innerHTML = '<i class="fa-solid fa-lock me-1"></i> VUI LÒNG CHỌN ĐỦ LỚP VÀ LỖI';
+            }
+        }
+
+        function selectQuickClass(btnElement) {
+            triggerHaptic(25);
+            document.querySelectorAll('.class-quick-btn').forEach(btn => {
+                btn.classList.remove('btn-primary', 'text-white');
+                btn.classList.add('btn-outline-primary');
+            });
+            btnElement.classList.remove('btn-outline-primary');
+            btnElement.classList.add('btn-primary', 'text-white');
+
+            const bId = btnElement.getAttribute('data-id');
+            const bName = btnElement.getAttribute('data-name');
+            document.getElementById('quickSelectedBranchId').value = bId;
+            
+            const labelDiv = document.getElementById('quickSelectedBranchLabel');
+            labelDiv.innerHTML = `<i class="fa-solid fa-circle-check text-success me-1"></i> Đã chọn: Chi đoàn ${bName}`;
+            labelDiv.className = "p-2 mb-2 rounded-3 text-center fw-bold text-success border border-success bg-white shadow-sm";
+            
+            checkQuickFormValidity();
+        }
+
+        function selectQuickViolation(tagElement) {
+            triggerHaptic(20);
+            document.querySelectorAll('.modal-quick-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            tagElement.classList.add('active');
+            
+            const violId = tagElement.getAttribute('data-id');
+            document.getElementById('hiddenQuickViolationId').value = violId;
+            
+            checkQuickFormValidity();
+        }
+
+        // =========================================================
+        // [BỔ SUNG]: HỆ THỐNG XỬ LÝ VÀ NÉN ẢNH MINH CHỨNG
+        // =========================================================
+		function processEvidenceImage(input, previewContainerId, hiddenInputId) {
+            if (input.files && input.files[0]) {
+                let file = input.files[0];
+                if (!file.type.match('image.*')) {
+                    showNativeToast("Chỉ hỗ trợ chụp hoặc chọn định dạng ảnh!", "error"); return;
+                }
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let img = new Image();
+                    img.onload = function() {
+                        let canvas = document.createElement('canvas');
+                        let ctx = canvas.getContext('2d');
+                        let MAX_WIDTH = 800; let MAX_HEIGHT = 800; // Tăng chất lượng xíu
+                        let width = img.width; let height = img.height;
+                        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                        canvas.width = width; canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        let dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                        
+                        let hiddenInput = document.getElementById(hiddenInputId);
+                        let currentData = [];
+                        try { currentData = JSON.parse(hiddenInput.value); } catch(e) { currentData = []; }
+                        currentData.push(dataUrl);
+                        hiddenInput.value = JSON.stringify(currentData);
+                        
+                        renderPreviewImages(hiddenInputId, previewContainerId);
+                    }
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removePreviewImage(index, hiddenInputId, previewContainerId) {
+            triggerHaptic(20);
+            let hiddenInput = document.getElementById(hiddenInputId);
+            let currentData = JSON.parse(hiddenInput.value);
+            currentData.splice(index, 1);
+            hiddenInput.value = JSON.stringify(currentData);
+            renderPreviewImages(hiddenInputId, previewContainerId);
+        }
+
+        function renderPreviewImages(hiddenInputId, previewContainerId) {
+            let hiddenInput = document.getElementById(hiddenInputId);
+            let currentData = JSON.parse(hiddenInput.value);
+            let container = document.getElementById(previewContainerId);
+            container.innerHTML = '';
+            
+            currentData.forEach((dataUrl, index) => {
+                let wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+                wrapper.innerHTML = `
+                    <img src="${dataUrl}" style="height: 60px; border-radius: 6px; border: 1px solid #dc3545; object-fit: cover;">
+                    <button type="button" class="btn-close position-absolute top-0 start-100 translate-middle bg-white rounded-circle shadow-sm" style="padding: 3px; font-size: 10px;" onclick="removePreviewImage(${index}, '${hiddenInputId}', '${previewContainerId}')"></button>
+                `;
+                container.appendChild(wrapper);
+            });
+        }
+        // ========================================================
+        // [CƠ CHẾ GIỎ CHỜ ÂN HẠN (GRACE PERIOD) & ĐỒNG BỘ OFFLINE]
+        // ========================================================
+        const GRACE_PERIOD_MS = 15 * 60 * 1000; // 15 Phút ân hạn
+
+        function handleNetworkChange() {
+            const banner = document.getElementById('network-status-banner');
+            if (navigator.onLine) {
+                banner.style.display = 'none';
+                autoSyncOfflineData(); 
+            } else {
+                banner.style.display = 'block';
+            }
+        }
+
+        function saveToOfflineStorage(url, dataObj, isJson = false, description = "Phiếu điểm") {
+            let pending = JSON.parse(localStorage.getItem('saodo_offline_queue') || '[]');
+            let id = 'task_' + new Date().getTime();
+            let now = new Date().getTime();
+            
+            pending.push({ 
+                id: id,
+                url: url, 
+                data: dataObj, 
+                isJson: isJson,
+                description: description,
+                timestamp: now,
+                graceEnd: now + GRACE_PERIOD_MS 
+            });
+            localStorage.setItem('saodo_offline_queue', JSON.stringify(pending));
+            updatePendingUI();
+        }
+
+        function updatePendingUI() {
+            let pending = JSON.parse(localStorage.getItem('saodo_offline_queue') || '[]');
+            const btnContainer = document.getElementById('sync-button-container');
+            const countSpan = document.getElementById('pending-count');
+            
+            if (pending.length > 0) {
+                btnContainer.style.display = 'block';
+                countSpan.innerText = pending.length;
+            } else {
+                btnContainer.style.display = 'none';
+            }
+        }
+
+		function openGraceQueueModal() {
+            triggerHaptic(20);
+            let pending = JSON.parse(localStorage.getItem('saodo_offline_queue') || '[]');
+            const container = document.getElementById('queueListContainer');
+            container.innerHTML = '';
+
+            if (pending.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-4 fw-bold"><i class="fa-solid fa-box-open fs-1 mb-2 opacity-50 d-block"></i> Giỏ chờ đang trống</div>';
+            } else {
+                let now = new Date().getTime();
+                pending.forEach(item => {
+                    let timeLeft = Math.max(0, Math.floor((item.graceEnd - now) / 1000));
+                    let min = Math.floor(timeLeft / 60);
+                    let sec = timeLeft % 60;
+                    let timeStr = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+
+                    // ========================================================
+                    // [NÂNG CẤP LÕI]: BÓC TÁCH CHI TIẾT LỖI TỪ GÓI DỮ LIỆU NÉN
+                    // ========================================================
+                    let detailsHtml = '';
+                    
+                    try {
+                        // Trường hợp 1: Dữ liệu từ Form Ghi Nhanh (Trực Cổng)
+                        if (item.description.includes('Ghi nhanh lỗi')) {
+                            let vId = item.data['violation_id'];
+                            let sName = item.data['student_name'];
+                            // Đối chiếu ID với Ngân hàng lỗi để lấy tên
+                            let vObj = violationBank.find(v => v.id == vId);
+                            let vName = vObj ? vObj.name : 'Lỗi không xác định';
+                            detailsHtml += `<div class="small mt-2 text-secondary"><i class="fa-solid fa-caret-right text-danger me-1"></i> <b>${sName}</b>: ${vName}</div>`;
+                        } 
+                        // Trường hợp 2: Dữ liệu từ Form Chấm Điểm Lớp (Cụm trực)
+                        else if (item.description.includes('Chấm điểm lớp')) {
+                            let hasErrors = false;
+                            // Quét qua toàn bộ Ngân hàng lỗi để đối chiếu số lượng
+                            violationBank.forEach(v => {
+                                let qty = parseInt(item.data['viol_' + v.id]);
+                                if (qty > 0) {
+                                    let students = item.data['student_' + v.id] || '';
+                                    let stDisplay = students ? `[${students}]` : '';
+                                    detailsHtml += `<div class="small mt-1 text-secondary" style="font-size: 13px; line-height: 1.4;"><i class="fa-solid fa-caret-right text-danger me-1"></i> <b>${v.name}</b> (x${qty}) <span class="text-primary">${stDisplay}</span></div>`;
+                                    hasErrors = true;
+                                }
+                            });
+                            
+                            let manual = item.data['manual_note'];
+                            if (manual && manual.trim() !== '') {
+                                detailsHtml += `<div class="small mt-1 text-secondary" style="font-size: 13px; line-height: 1.4;"><i class="fa-solid fa-pen-to-square text-primary me-1"></i> <b>Ghi chú thêm:</b> ${manual}</div>`;
+                                hasErrors = true;
+                            }
+                            
+                            if (!hasErrors) {
+                                detailsHtml += `<div class="small mt-2 text-success fw-bold"><i class="fa-solid fa-shield-check me-1"></i> Lớp giữ nề nếp tốt, không có vi phạm.</div>`;
+                            }
+                        }
+                        // Trường hợp 3: Đánh giá đồng đội KPI
+                        else if (item.description.includes('Đánh giá đồng đội')) {
+                             detailsHtml += `<div class="small mt-2 text-secondary"><i class="fa-solid fa-user-check text-success me-1"></i> Đã chấm điểm ẩn danh xong.</div>`;
+                        }
+                    } catch (e) {
+                        detailsHtml += `<div class="small mt-2 text-muted fst-italic">Không thể hiển thị trước chi tiết.</div>`;
+                    }
+                    // ========================================================
+					// Giao diện thẻ chờ được thiết kế lại để bao bọc cả phần Chi tiết
+                    container.innerHTML += `
+                        <div class="bg-white border p-3 rounded-4 mb-2 position-relative shadow-sm">
+                            <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size: 14.5px;">${item.description}</div>
+                                    <!-- [BẢN VÁ LỖI]: Bọc thời gian vào thẻ span.live-countdown -->
+                                    <div class="small text-danger fw-bold mt-1 live-countdown-wrapper">
+                                        <i class="fa-regular fa-clock fa-spin me-1"></i> Tự nộp sau <span class="live-countdown" data-endtime="${item.graceEnd}">${timeStr}</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger fw-bold shadow-sm btn-undo-task" onclick="undoTask('${item.id}')" style="border-radius: 8px;">
+                                    <i class="fa-solid fa-rotate-left me-1"></i> Hủy & Sửa
+                                </button>
+                            </div>
+                            <div class="pt-1">
+                                <span class="badge bg-light text-secondary border mb-1" style="font-size: 10px; letter-spacing: 0.5px;">XEM LẠI CHI TIẾT BÊN TRONG:</span>
+                                ${detailsHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            var myModal = bootstrap.Modal.getInstance(document.getElementById('graceQueueModal')) || new bootstrap.Modal(document.getElementById('graceQueueModal'));
+            myModal.show();
+        }
+
+        function undoTask(taskId) {
+            triggerHaptic(30);
+            let pending = JSON.parse(localStorage.getItem('saodo_offline_queue') || '[]');
+            pending = pending.filter(item => item.id !== taskId);
+            localStorage.setItem('saodo_offline_queue', JSON.stringify(pending));
+            
+            showNativeToast("Đã rút lại phiếu điểm thành công! Bạn có thể sửa lại trên màn hình.", "success");
+            
+            updatePendingUI();
+            openGraceQueueModal(); 
+            
+            document.querySelectorAll('.pending-badge').forEach(el => el.remove());
+        }
+
+        async function autoSyncOfflineData() {
+            if (!navigator.onLine) return;
+            let pending = JSON.parse(localStorage.getItem('saodo_offline_queue') || '[]');
+            if (pending.length === 0) return;
+
+            let now = new Date().getTime();
+            let expiredTasks = pending.filter(item => now >= item.graceEnd);
+            let keepingTasks = pending.filter(item => now < item.graceEnd); 
+
+            if (expiredTasks.length === 0) return; 
+
+            let successCount = 0;
+            for (let item of expiredTasks) {
+                let fetchOptions = { method: 'POST' };
+                if (item.isJson) {
+                    fetchOptions.headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+                    fetchOptions.body = JSON.stringify(item.data);
+                } else {
+                    let formData = new FormData();
+                    for (let key in item.data) { formData.append(key, item.data[key]); }
+                    fetchOptions.body = formData;
+                }
+                try {
+                    const response = await fetch(item.url, fetchOptions);
+                    if (response.ok) successCount++;
+                    else keepingTasks.push(item);
+                } catch (error) { keepingTasks.push(item); }
+            }
+
+            localStorage.setItem('saodo_offline_queue', JSON.stringify(keepingTasks));
+            updatePendingUI();
+            if (successCount > 0) {
+                showNativeToast(`Đã tự động nộp ${successCount} phiếu điểm lên hệ thống!`, "success");
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        }
+
+        function forceSyncAllNow() {
+            triggerHaptic(40);
+            if (!navigator.onLine) {
+                alert("Vui lòng kết nối Internet/4G trước khi đồng bộ!");
+                return;
+            }
+            let pending = JSON.parse(localStorage.getItem('saodo_offline_queue') || '[]');
+            pending.forEach(item => item.graceEnd = 0);
+            localStorage.setItem('saodo_offline_queue', JSON.stringify(pending));
+            
+            bootstrap.Modal.getInstance(document.getElementById('graceQueueModal')).hide();
+            showNativeToast("Đang đẩy toàn bộ dữ liệu lên hệ thống...", "success");
+            autoSyncOfflineData();
+        }
+
+        setInterval(autoSyncOfflineData, 10000); 
+    </script>
+	<script>
+		// Hàm tự động đồng bộ dữ liệu, HỢP NHẤT NHÁP và ĐÓNG BĂNG GIAO DIỆN từ Bảng tuần ra App Sao Đỏ
+        function startAutoSyncSaoDo(weekName) {
+            setInterval(async () => {
+                try {
+                    let response = await fetch(`/api/weekly_scores_json/${encodeURIComponent(weekName)}`);
+                    if (response.status === 401) return; 
+                    
+                    let result = await response.json();
+                    if (result.success && result.data) {
+                        result.data.forEach(item => {
+                            let branchId = item.branch_id;
+                            
+                            let oldNoteEl = document.getElementById(`old_note_${branchId}`);
+                            let oldTotalScoreEl = document.getElementById(`old_total_score_${branchId}`);
+                            let noteInputEl = document.getElementById(`detailNote_${branchId}`);
+                            let liveScoreEl = document.getElementById(`live_total_score_${branchId}`);
+                            
+                            // Lấy Khung hiển thị Lịch sử
+                            let historyBoxEl = document.getElementById(`history_note_${branchId}`); 
+
+                            // ========================================================
+                            // [NÂNG CẤP]: CẬP NHẬT TRỰC TIẾP KHUNG LỊCH SỬ LỖI MỖI 4 GIÂY
+                            // ========================================================
+                            if (historyBoxEl && item.note !== undefined) {
+                                if (item.note.trim() !== "") {
+                                    let html = "";
+                                    item.note.split(';').forEach(part => {
+                                        if (part.trim()) {
+                                            html += `<div class="mb-1"><i class="fa-solid fa-caret-right text-danger me-1" style="font-size: 10px;"></i> ${part.trim()}</div>`;
+                                        }
+                                    });
+                                    historyBoxEl.innerHTML = html;
+                                } else {
+                                    historyBoxEl.innerHTML = `<span class="text-muted fst-italic">Chưa có vi phạm nào trong tuần.</span>`;
+                                }
+                            }
+                            
+                            // ========================================================
+                            // THUẬT TOÁN ĐỒNG BỘ THÔNG MINH (CHỐNG MẤT CHỮ ĐANG GÕ)
+                            // ========================================================
+                            if (noteInputEl && oldNoteEl && oldTotalScoreEl) {
+                                let currentInput = noteInputEl.value.trim();
+                                let oldServerNote = oldNoteEl.value.trim();
+                                let newServerNote = item.note || "";
+                                
+                                if (currentInput === newServerNote) {
+                                    oldNoteEl.value = newServerNote;
+                                    oldTotalScoreEl.value = item.total_score;
+                                    if (liveScoreEl) liveScoreEl.innerText = item.total_score.toFixed(1);
+                                    
+                                } else if (currentInput === oldServerNote) {
+                                    noteInputEl.value = newServerNote;
+                                    oldNoteEl.value = newServerNote;
+                                    oldTotalScoreEl.value = item.total_score;
+                                    if (liveScoreEl) liveScoreEl.innerText = item.total_score.toFixed(1);
+                                    
+                                } else {
+                                    if (newServerNote !== oldServerNote) {
+                                        let draftText = currentInput;
+                                        if (oldServerNote !== "" && currentInput.includes(oldServerNote)) {
+                                            draftText = currentInput.replace(oldServerNote, "").trim();
+                                            if (draftText.startsWith(";") || draftText.startsWith(",")) {
+                                                draftText = draftText.substring(1).trim();
+                                            }
+                                        }
+                                        noteInputEl.value = newServerNote ? `${newServerNote} ; ${draftText}` : draftText;
+                                        oldNoteEl.value = newServerNote;
+                                    }
+                                    
+                                    if (oldTotalScoreEl.value != item.total_score) {
+                                        oldTotalScoreEl.value = item.total_score;
+                                        noteInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                    }
+                                }
+                            }
+
+                            // ========================================================
+                            // CHIẾN DỊCH BÀN TAY SẮT: ĐÓNG BĂNG TOÀN DIỆN KHI KHÓA SỔ
+                            // ========================================================
+                            let formEl = document.getElementById(`form_submit_${branchId}`);
+                            if (formEl) {
+                                let btnSubmit = formEl.querySelector('.btn-submit');
+                                let allInputs = formEl.querySelectorAll('input, select, textarea, button:not(.btn-info)');
+                                let quickTags = formEl.querySelectorAll('.quick-tag'); 
+
+                                if (item.is_locked) {
+                                    allInputs.forEach(el => el.disabled = true);
+                                    quickTags.forEach(tag => tag.style.pointerEvents = 'none'); 
+                                    
+                                    if (btnSubmit) {
+                                        btnSubmit.classList.remove('btn-primary');
+                                        btnSubmit.classList.add('btn-secondary');
+                                        btnSubmit.innerHTML = '<i class="fa-solid fa-lock me-2"></i> ĐÃ KHÓA SỔ (CHỐT ĐIỂM)';
+                                    }
+                                } else {
+                                    allInputs.forEach(el => el.disabled = false);
+                                    quickTags.forEach(tag => tag.style.pointerEvents = 'auto');
+                                    
+                                    if (btnSubmit) {
+                                        btnSubmit.classList.remove('btn-secondary');
+                                        btnSubmit.classList.add('btn-primary');
+                                        btnSubmit.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> CHUYỂN LÊN HỆ THỐNG';
+                                    }
+                                }
+                            }
+                        });
+                    }
+                } catch (err) {
+                    // Tạm ẩn log để tối ưu RAM điện thoại
+                }
+            }, 4000); 
+        }
+
+        // Kích hoạt ngay khi mở App
+        document.addEventListener("DOMContentLoaded", () => {
+            const currentWeek = "{{ current_week }}"; 
+            if (currentWeek) {
+                startAutoSyncSaoDo(currentWeek);
+            }
+        });
+    </script>
+	<!-- ========================================================================= -->
+    <!-- [NÂNG CẤP]: KHUNG XEM ẢNH MINH CHỨNG CÓ CHỨC NĂNG VUỐT / CHUYỂN TRANG -->
+    <!-- ========================================================================= -->
+    <div id="customEvidenceOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 999999; align-items: center; justify-content: center; flex-direction: column;">
+        <div style="position: absolute; top: 15px; right: 25px; color: white; font-size: 40px; cursor: pointer; font-weight: bold; z-index: 9999999;" onclick="closeEvidenceSafe()">&times;</div>
+        
+        <h4 id="customEvidenceTitle" style="color: white; margin-bottom: 15px; font-weight: bold; font-family: 'Inter', sans-serif;"><i class="fa-regular fa-images me-2"></i>Ảnh Minh Chứng</h4>
+        
+        <!-- Khung Slider Bootstrap -->
+        <div id="evidenceCarousel" class="carousel slide" data-bs-ride="false" style="width: 100%; max-width: 700px; padding: 0 15px;">
+            <div class="carousel-indicators" id="carouselIndicators" style="bottom: -40px;"></div>
+            <div class="carousel-inner" id="customEvidenceImgContainer" style="border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#evidenceCarousel" data-bs-slide="prev" id="carouselPrevBtn">
+                <span class="carousel-control-prev-icon" aria-hidden="true" style="width: 3rem; height: 3rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.8));"></span>
+                <span class="visually-hidden">Trước</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#evidenceCarousel" data-bs-slide="next" id="carouselNextBtn">
+                <span class="carousel-control-next-icon" aria-hidden="true" style="width: 3rem; height: 3rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.8));"></span>
+                <span class="visually-hidden">Sau</span>
+            </button>
+        </div>
+        
+        <!-- Bộ đếm số lượng ảnh -->
+        <div id="mobileImageCounter" class="text-white fw-bold mt-4" style="font-size: 16px; letter-spacing: 1px;"></div>
+    </div>
+
+    <script>
+        function viewEvidenceSafe(event, imagePaths, weekName) {
+            if(event) { event.preventDefault(); event.stopPropagation(); }
+            
+            // Tách chuỗi nhiều ảnh và lọc các chuỗi rỗng
+            let paths = imagePaths.split('|').filter(p => p.trim() !== '');
+            if(paths.length === 0) return;
+
+            let imgHtml = '';
+            let indHtml = '';
+            
+            // Tạo các trang ảnh trong Slider
+            paths.forEach((p, index) => {
+                let activeClass = index === 0 ? 'active' : '';
+                
+                indHtml += `<button type="button" data-bs-target="#evidenceCarousel" data-bs-slide-to="${index}" class="${activeClass}" aria-current="${index === 0 ? 'true' : 'false'}"></button>`;
+                
+                imgHtml += `
+                <div class="carousel-item ${activeClass}">
+                    <img src="${p.trim()}" class="d-block w-100" style="max-height: 75vh; object-fit: contain; background: transparent;">
+                </div>`;
+            });
+            
+            document.getElementById('carouselIndicators').innerHTML = indHtml;
+            document.getElementById('customEvidenceImgContainer').innerHTML = imgHtml;
+            document.getElementById('customEvidenceTitle').innerHTML = `<i class="fa-regular fa-images me-2"></i>Minh Chứng - ${weekName}`;
+            
+            let counterEl = document.getElementById('mobileImageCounter');
+            if(counterEl) counterEl.innerHTML = `Ảnh 1 / ${paths.length}`;
+            
+            let myCarousel = document.getElementById('evidenceCarousel');
+            myCarousel.addEventListener('slide.bs.carousel', function (e) {
+                if(counterEl) counterEl.innerHTML = `Ảnh ${e.to + 1} / ${paths.length}`;
+            });
+
+            if(paths.length <= 1) {
+                document.getElementById('carouselPrevBtn').style.display = 'none';
+                document.getElementById('carouselNextBtn').style.display = 'none';
+                document.getElementById('carouselIndicators').style.display = 'none';
+            } else {
+                document.getElementById('carouselPrevBtn').style.display = 'flex';
+                document.getElementById('carouselNextBtn').style.display = 'flex';
+                document.getElementById('carouselIndicators').style.display = 'flex';
+            }
+
+            document.getElementById('customEvidenceOverlay').style.display = 'flex';
+        }
+
+        function closeEvidenceSafe() {
+            document.getElementById('customEvidenceOverlay').style.display = 'none';
+            document.getElementById('customEvidenceImgContainer').innerHTML = '';
+            document.getElementById('carouselIndicators').innerHTML = '';
+        }
+		// =========================================================
+        // [CƠ CHẾ 4] GIAO TIẾP VỚI CẢM BIẾN VÂN TAY / FACE ID (WEBAUTHN)
+        // =========================================================
+        async function registerBiometric() {
+            triggerHaptic(30);
+            
+            // 1. Kiểm tra phần cứng thiết bị có hỗ trợ Sinh trắc học không
+            if (!window.PublicKeyCredential) {
+                showNativeToast("Thiết bị của bạn không hỗ trợ cảm biến Sinh trắc học!", "error");
+                return;
+            }
+            
+            showNativeToast("Đang khởi động máy quét bảo mật...", "success");
+            
+            // 2. Giao diện (Frontend) đã sẵn sàng. Chờ kết nối Backend Python
+            setTimeout(() => {
+                alert("🔒 Giao diện WebAuthn đã sẵn sàng!\n\nĐể quét FaceID/Vân tay, vui lòng báo Quản trị viên cài đặt thêm thư viện 'webauthn' vào máy chủ Flask (Backend) để cấp Khóa bảo mật (Public Key).");
+            }, 800);
+        }
+
+        // =========================================================
+        // [CƠ CHẾ 5] XIN QUYỀN VÀ GỬI SUBSCRIPTION LÊN MÁY CHỦ
+        // =========================================================
+        // Hàm chuyển đổi VAPID Key sang định dạng nhị phân
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+            return outputArray;
+        }
+
+        async function enablePushNotifications() {
+            triggerHaptic(30);
+            
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                showNativeToast("Trình duyệt không hỗ trợ Web Push!", "error"); return;
+            }
+            
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                showNativeToast("❌ Bạn đã từ chối nhận thông báo.", "error"); return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const publicVapidKey = "BGL6lcaXMAK5VhqdjWBO9IZ0ECiKYu47oE_RQE7rCpRinW2Je0IyrnNQi35glDiMPAMzIh0ynLUHxu4aZFCIWSs"; // PHẢI KHỚP VỚI KEY TRONG APP.PY
+                
+                // Đăng ký với máy chủ đẩy của Google/Apple
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                });
+                
+                // Gửi chìa khóa về Backend Flask
+                await fetch('/api/save_subscription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(subscription)
+                });
+
+                const btn = document.getElementById('btnPushNotify');
+                if(btn) {
+                    btn.innerHTML = '<i class="fa-solid fa-bell-slash me-1"></i> Đã bật TB';
+                    btn.classList.replace('text-info', 'text-secondary');
+                    btn.classList.replace('bg-info', 'bg-secondary');
+                }
+                showNativeToast("✅ Đã kết nối thành công! Bạn sẽ nhận được tin nhắn thời gian thực.", "success");
+                
+            } catch (error) {
+                console.error("Lỗi đăng ký Push:", error);
+                showNativeToast("❌ Lỗi kết nối máy chủ Push.", "error");
+            }
+        }
+		document.addEventListener("DOMContentLoaded", function() {
+            const tickerText = document.querySelector('.ticker-text');
+            if (tickerText) {
+                // Tính toán độ dài của nội dung thông báo
+                const textLength = tickerText.innerText.length;
+                
+                // Công thức tự động co giãn thời gian: Cứ khoảng 5-6 ký tự cho thêm 1 giây chạy
+                // Đảm bảo tốc độ hiển thị luôn đều nhau, bản tin dài sẽ chạy lâu hơn bản tin ngắn
+                let calculatedDuration = Math.max(15, textLength * 0.25); 
+                
+                // Gán ngược lại vào biến CSS của thẻ
+                tickerText.style.setProperty('--ticker-duration', calculatedDuration + 's');
+            }
+        });
+		// ========================================================
+        // ĐỒNG HỒ ĐẾM NGƯỢC THỜI GIAN THỰC TRONG GIỎ CHỜ
+        // ========================================================
+        setInterval(function() {
+            // Tìm tất cả các đồng hồ đếm ngược đang hiển thị
+            const countdowns = document.querySelectorAll('.live-countdown');
+            if (countdowns.length === 0) return; // Nếu modal đang đóng thì bỏ qua
+            
+            let now = new Date().getTime();
+            
+            countdowns.forEach(el => {
+                let endTime = parseInt(el.getAttribute('data-endtime'));
+                let timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+                
+                let wrapper = el.closest('.live-countdown-wrapper');
+                let btnUndo = el.closest('.bg-white').querySelector('.btn-undo-task');
+                
+                if (timeLeft <= 0) {
+                    // KHI HẾT GIỜ (Đang chờ hệ thống tự thu bài)
+                    el.innerText = "Đang thu bài...";
+                    if (wrapper) {
+                        wrapper.classList.replace('text-danger', 'text-success');
+                        wrapper.querySelector('i').className = "fa-solid fa-cloud-arrow-up fa-bounce me-1";
+                    }
+                    // Ẩn nút "Hủy & Sửa" để tránh bấm nhầm lúc hệ thống đang nộp
+                    if (btnUndo) btnUndo.style.display = 'none';
+                } else {
+                    // KHI CÒN THỜI GIAN: Tính phút/giây và in ra
+                    let min = Math.floor(timeLeft / 60);
+                    let sec = timeLeft % 60;
+                    el.innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+                }
+            });
+        }, 1000);
+    </script>
+</body>
+</html>

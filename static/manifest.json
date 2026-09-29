@@ -1,0 +1,22 @@
+{
+  "name": "Hệ thống Quản lý Thi đua",
+  "short_name": "Sổ Đầu Bài",
+  "description": "Ứng dụng quản lý nề nếp và thi đua dành cho Đội Sao đỏ",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#dc3545",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
